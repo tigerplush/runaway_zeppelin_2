@@ -1,0 +1,2 @@
+To reach an event, players select a [[Point of Interest]] on the [[Map]].
+This will show which path will be taken by the [[Zeppelin]] and how much [[Resources]] the journey will take. After consideration, players can then `Set Course` and the [[Zeppelin]] will move and the [[Resources]] will be spent slowly. [[Time]] will advance too. A course can be canceled, but the resources that have been spent will not recuperate.

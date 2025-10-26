@@ -1,0 +1,1 @@
+Morale is between 0 to 100% and will be tracked per [[NPC]]. If there is some randomness in an [[Event]], it will be skewed by the morale (higher morale leads to more success). If the morale of an [[NPC]] is low, they will refuse to work and incite mutinies. If a mutiny succeeds (depending on how many [[NPC]]s have low morale), the game ends.

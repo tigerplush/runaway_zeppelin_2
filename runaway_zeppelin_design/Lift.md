@@ -1,0 +1,3 @@
+Lift is important to keep the [[Zeppelin]] above the strange lands. It is calculated by adding all lift and subtracting all weight. Every resource, NPC and the zeppelin itself has weight. Lift is only provided by gaseous Fuel and lifting gas.
+The lift needs to be between 0 and 100. Under 0 the zeppelin will slowly fall and crash into the strange lands, ending the game. If the lift is above 100, the Zeppelin ascends uncontrollably and consumes more fuel. When ascending, the zeppelin is harder to control and the structural stress.
+To manage lift, a player can dump [[Resources]] or vent gases. Even [[NPC]]s can be dumped, but with heavy morale loss.

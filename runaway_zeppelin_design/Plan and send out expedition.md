@@ -1,0 +1,1 @@
+When arriving at a [[Point of Interest]] there will either be an [[Event]] or an Embarkation Menu. On this menu the player can see which obstacles may lie ahead and assign [[NPC]]s or [[Resources]]. When sending the landing party, the [[Event]] will start.
