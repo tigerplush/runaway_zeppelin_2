@@ -1,12 +1,20 @@
 use bevy::prelude::*;
 
+use crate::states::AppStates;
+
 mod assets;
+mod in_game_time;
 mod npc;
+mod states;
 
 pub struct AppPlugin;
 
 impl Plugin for AppPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((assets::plugin, npc::plugin));
+        app.init_state::<AppStates>().add_plugins((
+            assets::plugin,
+            in_game_time::plugin,
+            npc::plugin,
+        ));
     }
 }

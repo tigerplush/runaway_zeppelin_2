@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 bevy = "0.17.2"
+chrono = "0.4.42"
 
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]
