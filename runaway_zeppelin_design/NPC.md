@@ -1,6 +1,8 @@
 There is two types of NPCs: [[#Crew Members]] and [[#Passengers]].
 # Crew Members
 Crew members are more resilient than passengers. They loose [[Morale]] slower and are accustomed to uncomfortable living. They only need a bunk bed and a sea sack. They also don't loose morale when living on rations.
+Crew Members are assigned to different shifts and the player can reassign them to different shifts.
+Engineers need to be available round the clock. Cooks only need to be active during the day. A helmsman needs to be active whenever the player wants to move the zeppelin.
 # Passengers
 Passengers need a bed in a cabin and access to their luggage. They need three square meals a day and quickly loose morale when inconvenienced. Some passengers have day [[#Jobs]] that can be utilized in [[Event]]s.
 # Needs

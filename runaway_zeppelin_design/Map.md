@@ -1,0 +1,1 @@
+The world map is made of a hexagonal tile map.
