@@ -4,6 +4,7 @@ use crate::states::AppStates;
 
 mod assets;
 mod in_game_time;
+mod main_app;
 mod npc;
 mod states;
 
@@ -14,6 +15,7 @@ impl Plugin for AppPlugin {
         app.init_state::<AppStates>().add_plugins((
             assets::plugin,
             in_game_time::plugin,
+            main_app::plugin,
             npc::plugin,
         ));
     }
