@@ -26,22 +26,31 @@ pub enum TimePassed {
     Day(u32),
 }
 
-const TIME_SPEED_FACTOR: f32 = 48.0;
+const TIME_SPEED_FACTOR: u32 = 48;
 
 #[derive(Event)]
 pub struct GameSpeedChangeEvent(pub GameSpeed);
 
 fn on_game_speed_change(trigger: On<GameSpeedChangeEvent>, mut time: ResMut<Time<Virtual>>) {
     match trigger.0 {
-        GameSpeed::Pause => time.set_relative_speed(0.0),
-        GameSpeed::Speed1 => time.set_relative_speed(TIME_SPEED_FACTOR),
-        GameSpeed::Speed2 => time.set_relative_speed(TIME_SPEED_FACTOR * 2.0),
-        GameSpeed::Speed4 => time.set_relative_speed(TIME_SPEED_FACTOR * 4.0),
+        GameSpeed::Pause => time.pause(),
+        GameSpeed::Speed1 => {
+            time.set_relative_speed(1.0);
+            time.unpause();
+        }
+        GameSpeed::Speed2 => {
+            time.set_relative_speed(2.0);
+            time.unpause();
+        }
+        GameSpeed::Speed4 => {
+            time.set_relative_speed(4.0);
+            time.unpause();
+        }
     }
 }
 
 fn pause_game(mut commands: Commands) {
-    commands.trigger(GameSpeedChangeEvent(GameSpeed::Pause));
+    commands.trigger(GameSpeedChangeEvent(GameSpeed::Speed1));
 }
 
 #[derive(Reflect, Component)]
@@ -67,12 +76,15 @@ impl Default for InGameTime {
 }
 
 fn tick_in_game_time(
-    time: Res<Time>,
+    time: Res<Time<Virtual>>,
     mut in_game_time: Single<&mut InGameTime>,
     mut commands: Commands,
 ) {
+    if time.is_paused() {
+        return;
+    }
     let previous = in_game_time.current_time;
-    in_game_time.current_time = in_game_time.current_time + time.delta();
+    in_game_time.current_time = in_game_time.current_time + time.delta() * TIME_SPEED_FACTOR;
     if in_game_time.current_time.minute() != previous.minute() {
         commands.trigger(TimePassed::Minute(in_game_time.current_time.minute()));
     }
@@ -85,5 +97,5 @@ fn tick_in_game_time(
 }
 
 fn init_in_game_time(mut commands: Commands) {
-    commands.spawn(InGameTime::default());
+    commands.spawn((InGameTime::default(), DespawnOnExit(AppStates::MainMenu)));
 }
