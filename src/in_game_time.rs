@@ -47,15 +47,15 @@ fn on_game_speed_change(
     mut time: ResMut<Time<Virtual>>,
     mut in_game_time: Single<&mut InGameTime>,
 ) {
-    let new_speed = if GameSpeed::Pause == in_game_time.current_speed && GameSpeed::Pause == trigger.0 {
-        in_game_time.current_speed = in_game_time.previous_speed;
-        in_game_time.previous_speed
-    }
-    else {
-        in_game_time.previous_speed = in_game_time.current_speed;
-        in_game_time.current_speed = trigger.0;
-        in_game_time.current_speed
-    };
+    let new_speed =
+        if GameSpeed::Pause == in_game_time.current_speed && GameSpeed::Pause == trigger.0 {
+            in_game_time.current_speed = in_game_time.previous_speed;
+            in_game_time.previous_speed
+        } else {
+            in_game_time.previous_speed = in_game_time.current_speed;
+            in_game_time.current_speed = trigger.0;
+            in_game_time.current_speed
+        };
     match new_speed {
         GameSpeed::Pause => {
             time.pause();
@@ -73,7 +73,10 @@ fn on_game_speed_change(
             time.unpause();
         }
     }
-    info!("current: {:?}, previous: {:?}", in_game_time.current_speed, in_game_time.previous_speed);
+    info!(
+        "current: {:?}, previous: {:?}",
+        in_game_time.current_speed, in_game_time.previous_speed
+    );
 }
 
 fn pause_game(mut commands: Commands) {
@@ -134,7 +137,7 @@ fn tick_in_game_time(
         return;
     }
     let previous = in_game_time.current_time;
-    in_game_time.current_time = in_game_time.current_time + time.delta() * TIME_SPEED_FACTOR;
+    in_game_time.current_time += time.delta() * TIME_SPEED_FACTOR;
     if in_game_time.current_time.minute() != previous.minute() {
         commands.trigger(TimePassed::Minute(in_game_time.current_time.minute()));
     }

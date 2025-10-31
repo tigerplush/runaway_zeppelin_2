@@ -3,7 +3,8 @@ use bevy::prelude::*;
 use crate::{in_game_time::InGameTime, states::AppStates};
 
 pub fn plugin(app: &mut App) {
-    app.add_systems(OnEnter(AppStates::MainApp), setup).add_systems(Update, update_time.run_if(in_state(AppStates::MainApp)));
+    app.add_systems(OnEnter(AppStates::MainApp), setup)
+        .add_systems(Update, update_time.run_if(in_state(AppStates::MainApp)));
 }
 
 fn setup(mut commands: Commands) {
@@ -25,6 +26,9 @@ fn setup(mut commands: Commands) {
 #[derive(Component)]
 struct InGameTimeMarker;
 
-fn update_time(in_game_time: Single<&InGameTime>, mut text: Single<&mut Text, With<InGameTimeMarker>>) {
+fn update_time(
+    in_game_time: Single<&InGameTime>,
+    mut text: Single<&mut Text, With<InGameTimeMarker>>,
+) {
     text.0 = in_game_time.to_string();
 }
