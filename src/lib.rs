@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use crate::states::AppStates;
 
 mod assets;
+mod hex;
 mod in_game_time;
 mod main_app;
 mod npc;
