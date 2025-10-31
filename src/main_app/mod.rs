@@ -3,8 +3,11 @@ use bevy_water::{WaterPlugin, WaterSettings};
 
 use crate::states::AppStates;
 
+mod ui;
+
 pub fn plugin(app: &mut App) {
-    app.add_plugins(WaterPlugin)
+    app.add_plugins(ui::plugin)
+        .add_plugins(WaterPlugin)
         .add_systems(OnEnter(AppStates::MainApp), setup)
         .add_systems(OnExit(AppStates::MainApp), teardown);
 }
