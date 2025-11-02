@@ -161,7 +161,7 @@ fn init_in_game_time(mut commands: Commands) {
         (GameSpeed::Speed2, KeyCode::Digit2),
         (GameSpeed::Speed4, KeyCode::Digit3),
     ]);
-    commands.spawn((input_map, InGameTimeActions));
+    commands.spawn((input_map, InGameTimeActions, DespawnOnExit(AppStates::MainApp)));
 }
 
 fn check_input(

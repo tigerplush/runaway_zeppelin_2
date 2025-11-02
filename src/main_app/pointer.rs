@@ -4,7 +4,7 @@ use bevy::{
     window::PrimaryWindow,
 };
 
-use crate::{hex::AxialCoordinates, states::AppStates};
+use crate::{hex::{AxialCoordinates, SIZE}, states::AppStates};
 
 pub fn plugin(app: &mut App) {
     app.add_systems(OnEnter(AppStates::MainApp), setup)
@@ -66,9 +66,9 @@ fn update_pointer(
 
 fn draw_pointer(mut gizmos: Gizmos, mouse_pointer: Single<&MousePointer>) {
     if let Some(world_coordinates) = mouse_pointer.world_position {
-        gizmos.arrow(world_coordinates + Vec3::Y, world_coordinates, ORANGE);
+        gizmos.arrow(world_coordinates + Vec3::Y * SIZE, world_coordinates, ORANGE);
         let hex_coordinates =
             AxialCoordinates::from_world_coordinates(world_coordinates).to_world_coordinates();
-        gizmos.arrow(hex_coordinates + Vec3::Y, hex_coordinates, GREEN);
+        gizmos.arrow(hex_coordinates + Vec3::Y * SIZE, hex_coordinates, GREEN);
     }
 }

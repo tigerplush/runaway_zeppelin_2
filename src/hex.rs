@@ -3,7 +3,7 @@ use bevy::prelude::*;
 // use Vec3 as WorldCoordinates;
 type WorldCoordinates = Vec3;
 
-const SIZE: f32 = 1.0;
+pub const SIZE: f32 = 300.0;
 
 pub struct AxialCoordinates {
     pub q: isize,
