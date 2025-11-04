@@ -4,14 +4,21 @@ use bevy_water::{WaterPlugin, WaterSettings};
 use crate::{states::AppStates, zeppelin};
 
 mod camera;
+mod events;
 mod pointer;
 mod ui;
 
 pub fn plugin(app: &mut App) {
-    app.add_plugins((camera::plugin, pointer::plugin, ui::plugin, zeppelin::plugin))
-        .add_plugins(WaterPlugin)
-        .add_systems(OnEnter(AppStates::MainApp), setup)
-        .add_systems(OnExit(AppStates::MainApp), teardown);
+    app.add_plugins((
+        camera::plugin,
+        events::plugin,
+        pointer::plugin,
+        ui::plugin,
+        zeppelin::plugin,
+    ))
+    .add_plugins(WaterPlugin)
+    .add_systems(OnEnter(AppStates::MainApp), setup)
+    .add_systems(OnExit(AppStates::MainApp), teardown);
 }
 
 fn setup(mut commands: Commands) {
