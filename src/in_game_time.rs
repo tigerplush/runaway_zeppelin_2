@@ -15,6 +15,8 @@ pub struct InGameTime {
     #[reflect(ignore)]
     starting_time: NaiveDateTime,
     time_speed_factor: u32,
+    #[cfg(debug_assertions)]
+    debug_string: String,
 }
 
 impl InGameTime {
@@ -25,6 +27,8 @@ impl InGameTime {
             current_time: date_time,
             starting_time: date_time,
             time_speed_factor,
+            #[cfg(debug_assertions)]
+            debug_string: String::new(),
         }
     }
 
@@ -45,6 +49,17 @@ impl Default for InGameTime {
     }
 }
 
+impl std::fmt::Display for InGameTime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} (Day {})",
+            self.current_time.format(TO_STRING_FMT),
+            self.days() + 1
+        )
+    }
+}
+
 fn tick_in_game_time(time: Res<Time<Virtual>>, mut in_game_time: ResMut<InGameTime>) {
     if time.is_paused() {
         return;
@@ -52,11 +67,17 @@ fn tick_in_game_time(time: Res<Time<Virtual>>, mut in_game_time: ResMut<InGameTi
 
     let time_speed_factor = in_game_time.time_speed_factor;
     in_game_time.current_time += time.delta() * time_speed_factor;
+
+    if cfg!(debug_assertions) {
+        in_game_time.debug_string = format!("{}", *in_game_time);
+    }
 }
 
 pub fn plugin(app: &mut App) {
-    app.register_type::<InGameTime>().add_systems(
-        Update,
-        tick_in_game_time.run_if(resource_exists::<InGameTime>),
-    );
+    app.register_type::<InGameTime>()
+        .init_resource::<InGameTime>()
+        .add_systems(
+            Update,
+            tick_in_game_time.run_if(resource_exists::<InGameTime>),
+        );
 }
