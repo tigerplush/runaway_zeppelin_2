@@ -1,5 +1,8 @@
 use bevy::prelude::*;
+use bevy_enhanced_input::prelude::*;
 use chrono::*;
+
+use crate::input::*;
 
 const STARTING_DATE: &str = "1928-10-11 08:00:00";
 const FROM_STRING_FMT: &str = "%Y-%m-%d %H:%M:%S";
@@ -17,6 +20,8 @@ pub struct InGameTime {
     time_speed_factor: u32,
     #[cfg(debug_assertions)]
     debug_string: String,
+    current_speed: GameSpeed,
+    previous_speed: GameSpeed,
 }
 
 impl InGameTime {
@@ -29,6 +34,8 @@ impl InGameTime {
             time_speed_factor,
             #[cfg(debug_assertions)]
             debug_string: String::new(),
+            current_speed: GameSpeed::Pause,
+            previous_speed: GameSpeed::Speedx1,
         }
     }
 
@@ -73,11 +80,69 @@ fn tick_in_game_time(time: Res<Time<Virtual>>, mut in_game_time: ResMut<InGameTi
     }
 }
 
+fn spawn_controls(
+    mut time: ResMut<Time<Virtual>>,
+    in_game_time: Res<InGameTime>,
+    mut commands: Commands,
+) {
+    commands.spawn((Name::from("Time Controls"), time_control()));
+
+    apply_speed(&mut time, &in_game_time);
+}
+
+fn on_set_speed(
+    trigger: On<Start<SetSpeed>>,
+    mut time: ResMut<Time<Virtual>>,
+    mut in_game_time: ResMut<InGameTime>,
+    actions: Query<&GameSpeedIndex>,
+) {
+    let Ok(game_speed) = actions.get(trigger.action) else {
+        return;
+    };
+    match game_speed.0 {
+        GameSpeed::Pause if GameSpeed::Pause == in_game_time.current_speed => {
+            // if the game is paused, we want to go to the previous speed
+            in_game_time.current_speed = in_game_time.previous_speed
+        }
+        GameSpeed::Pause => {
+            // if the game is not paused, we remember the previous speed and pause it
+            in_game_time.previous_speed = in_game_time.current_speed;
+            in_game_time.current_speed = GameSpeed::Pause
+        }
+        GameSpeed::Speedx1 => in_game_time.current_speed = GameSpeed::Speedx1,
+        GameSpeed::Speedx2 => in_game_time.current_speed = GameSpeed::Speedx2,
+        GameSpeed::Speedx4 => in_game_time.current_speed = GameSpeed::Speedx4,
+    };
+
+    apply_speed(&mut time, &in_game_time);
+}
+
+fn apply_speed(time: &mut Time<Virtual>, in_game_time: &InGameTime) {
+    match in_game_time.current_speed {
+        GameSpeed::Pause => time.pause(),
+        GameSpeed::Speedx1 => {
+            time.unpause();
+            time.set_relative_speed(1.0)
+        }
+        GameSpeed::Speedx2 => {
+            time.unpause();
+            time.set_relative_speed(2.0)
+        }
+        GameSpeed::Speedx4 => {
+            time.unpause();
+            time.set_relative_speed(4.0)
+        }
+    };
+    info!("{:?}", time);
+}
+
 pub fn plugin(app: &mut App) {
     app.register_type::<InGameTime>()
         .init_resource::<InGameTime>()
+        .add_systems(Startup, spawn_controls)
         .add_systems(
             Update,
             tick_in_game_time.run_if(resource_exists::<InGameTime>),
-        );
+        )
+        .add_observer(on_set_speed.run_if(resource_exists::<InGameTime>));
 }

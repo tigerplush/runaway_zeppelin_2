@@ -58,7 +58,39 @@ pub fn pan_orbit_controls() -> impl Bundle {
     )
 }
 
+
+#[derive(Component)]
+pub struct TimeControl;
+
+#[derive(InputAction)]
+#[action_output(bool)]
+pub struct SetSpeed;
+
+#[derive(Clone, Copy, PartialEq, Reflect)]
+pub enum GameSpeed {
+    Pause,
+    Speedx1,
+    Speedx2,
+    Speedx4
+}
+
+#[derive(Component, Deref)]
+pub struct GameSpeedIndex(pub GameSpeed);
+
+pub fn time_control() -> impl Bundle {
+    (
+        TimeControl,
+        actions!(TimeControl[
+            (Action::<SetSpeed>::new(), GameSpeedIndex(GameSpeed::Pause), bindings![KeyCode::Space]),
+            (Action::<SetSpeed>::new(), GameSpeedIndex(GameSpeed::Speedx1), bindings![KeyCode::Digit1]),
+            (Action::<SetSpeed>::new(), GameSpeedIndex(GameSpeed::Speedx2), bindings![KeyCode::Digit2]),
+            (Action::<SetSpeed>::new(), GameSpeedIndex(GameSpeed::Speedx4), bindings![KeyCode::Digit3]),
+        ]),
+    )
+}
+
 pub fn plugin(app: &mut App) {
     app.add_plugins(EnhancedInputPlugin)
-        .add_input_context::<PanOrbitCam>();
+        .add_input_context::<PanOrbitCam>()
+        .add_input_context::<TimeControl>();
 }
