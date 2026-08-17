@@ -1,0 +1,1 @@
+At the start of a game, a few wandering storms are placed on the map, far outside the Players current reach. Every tick, these storms move a little. When the player reaches a storm and decides to fly into it, the game ends with a victory. On a victory, all remaining cargo will be sold into the Meta Progression currency.

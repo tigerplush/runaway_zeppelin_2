@@ -1,1 +1,1 @@
-The world map is made of a hexagonal tile map.
+The world map is fully 3d, but is separated in hexagonal tiles. It is covered in Fog Of War that will be revealed within a certain radius around the zeppelin. Fog Of War that has been revealed but where the zeppelin has no active sight to will be greyed out.

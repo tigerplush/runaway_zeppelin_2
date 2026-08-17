@@ -1,0 +1,1 @@
+When a run was victoriously, the player gets a meta progression currency. With this currency, they can buy upgrades to the zeppelin for future runs. It is even possible to buy different zeppelins.

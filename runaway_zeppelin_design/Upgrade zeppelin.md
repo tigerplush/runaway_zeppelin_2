@@ -1,5 +1,5 @@
 It is possible to spend [[Resources]] to upgrade the [[Zeppelin]].
-* sacrifice cargo space for different new: e.g. improvised landing gear, "factory", where materials are converted into parts
+* sacrifice cargo space for different new "rooms": e.g. improvised landing gear, a "factory", where materials are converted into parts
 * improve engines
 * add protection
 * enhance radio room/electrical for tracking storms

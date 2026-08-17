@@ -27,16 +27,15 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Time.md",
+                "file": "Map.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Time"
+              "title": "Map"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -184,20 +183,23 @@
       "bases:Create new base": false
     }
   },
-  "active": "caf8245a9ea3bd6d",
+  "active": "997f3300180e5bde",
   "lastOpenFiles": [
-    "Game Design Document.md",
-    "Point of Interest.md",
-    "Map.md",
-    "Reach an event.md",
-    "NPC.md",
-    "Time.md",
-    "Upgrade zeppelin.md",
-    "Plan and send out expedition.md",
-    "Morale.md",
+    "Zeppelin.md",
     "Lift.md",
     "Event.md",
+    "Game Design Document.md",
+    "Meta Progression Updates.md",
+    "Storm.md",
+    "Map.md",
+    "Morale.md",
+    "Point of Interest.md",
+    "NPC.md",
+    "Plan and send out expedition.md",
+    "Reach an event.md",
     "Resources.md",
+    "Time.md",
+    "Upgrade zeppelin.md",
     "Policies.md"
   ]
 }
