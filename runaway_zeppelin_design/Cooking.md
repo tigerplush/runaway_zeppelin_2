@@ -1,0 +1,1 @@
+The kitchen is used to cook meals for the passengers. Usually, raw food will be converted into prepared meals by consuming a little water, but with upgrades it is possible to create luxury goods (like alcoholic drinks from a distill). It is also possible to create new rations from raw food at a better exchange rate then prepared meals.

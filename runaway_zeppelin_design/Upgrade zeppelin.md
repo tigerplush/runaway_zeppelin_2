@@ -22,7 +22,7 @@ rec room
 	* hollow bones
 	* copper wire on a spool
 * increases size/accuracy of radio availability
-	* detect storms (and especially exit event)
+	* detect [[Storm]]s
 	* communicate with landing crews over extended period
 	* signals from events
 # Navigation room

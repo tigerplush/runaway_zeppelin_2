@@ -7,12 +7,9 @@ The core game loop consists of:
 * [[Plan and send out expedition]]
 * [[Upgrade zeppelin]]
 
-Furthermore, every [[NPC]] on board will be simulated. To change the behavior of [[NPC]]s, [[Policy|Policies]] can be enacted from the Pursers Cabin. The game is won when the Zeppelin reaches the Exit [[Event]]. Between play sessions, the money earned from cargo and passengers can be used to buy the  [[Meta Progression Updates]] for the Zeppelin.
-The game ends when either the Zeppelin is destroyed, all [[NPC]]s die, the [[Morale]] sinks to 0 or the player finds and reaches the [[Storm]].
+Furthermore, every [[NPC]] on board will be simulated. To change the behavior of [[NPC]]s, [[Policy|Policies]] can be enacted from the Pursers Cabin. Between play sessions, the money earned from cargo and passengers can be used to buy the  [[Meta Progression Updates]] for the Zeppelin.
+The game ends with a loss when either the Zeppelin is destroyed, all [[NPC]]s die, the [[Morale]] sinks to 0 or with a victory when the player finds and reaches a [[Storm]].
 
-Unmentioned points:
-* add different "factions" (e.g. inhabitants of the strange lands)
-* buy maps that uncover/reveal parts of the world map
-
-session:
+Session length:
 * in-game: days to weeks
+* real-time: few hours
