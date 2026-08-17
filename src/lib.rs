@@ -5,6 +5,7 @@ mod in_game_time;
 mod input;
 mod map_generation;
 mod states;
+mod utils;
 
 fn spawn_light(mut commands: Commands) {
     commands.spawn((
