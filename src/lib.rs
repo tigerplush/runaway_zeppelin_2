@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+mod camera;
 mod in_game_time;
 mod input;
 mod map_generation;
@@ -19,6 +20,7 @@ pub struct AppPlugin;
 impl Plugin for AppPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
+            camera::plugin,
             in_game_time::plugin,
             input::plugin,
             map_generation::plugin,
