@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 mod in_game_time;
+mod input;
 mod map_generation;
 mod states;
 
@@ -19,6 +20,7 @@ impl Plugin for AppPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             in_game_time::plugin,
+            input::plugin,
             map_generation::plugin,
             states::plugin,
         ))
