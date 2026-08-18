@@ -5,6 +5,7 @@ mod camera;
 mod in_game_time;
 mod input;
 mod map_generation;
+mod pointer;
 mod states;
 mod utils;
 
@@ -26,6 +27,7 @@ impl Plugin for AppPlugin {
             in_game_time::plugin,
             input::plugin,
             map_generation::plugin,
+            pointer::plugin,
             states::plugin,
         ))
         .add_systems(Startup, spawn_light);

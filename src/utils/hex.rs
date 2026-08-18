@@ -5,6 +5,7 @@ type WorldCoordinates = Vec3;
 
 pub const DEFAULT_HEX_SIZE: Vec2 = Vec2::new(0.5, 0.5);
 
+#[derive(Clone, Copy, Debug, Reflect)]
 pub struct AxialCoordinates {
     pub q: isize,
     pub r: isize,
@@ -44,7 +45,8 @@ impl From<ICubeCoordinates> for AxialCoordinates {
     }
 }
 
-struct ICubeCoordinates {
+#[derive(Clone, Copy, Reflect)]
+pub struct ICubeCoordinates {
     q: isize,
     r: isize,
     s: isize,

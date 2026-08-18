@@ -89,8 +89,25 @@ pub fn time_control() -> impl Bundle {
     )
 }
 
+#[derive(Component)]
+pub struct PointerControl;
+
+#[derive(InputAction)]
+#[action_output(bool)]
+pub struct SelectTile;
+
+pub fn pointer_control() -> impl Bundle {
+    (
+        PointerControl,
+        actions!(PointerControl[
+            (Action::<SelectTile>::new(),bindings![MouseButton::Left]),
+        ])
+    )
+}
+
 pub fn plugin(app: &mut App) {
     app.add_plugins(EnhancedInputPlugin)
         .add_input_context::<PanOrbitCam>()
-        .add_input_context::<TimeControl>();
+        .add_input_context::<TimeControl>()
+        .add_input_context::<PointerControl>();
 }
