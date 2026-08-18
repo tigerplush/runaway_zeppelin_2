@@ -2,7 +2,11 @@ use std::f32::consts::PI;
 
 use bevy::prelude::*;
 
-use crate::{pathfinding::Pathfinder, pointer::SelectTileMessage, utils::hex::AxialCoordinates};
+use crate::{
+    pathfinding::Pathfinder,
+    pointer::SelectTileMessage,
+    utils::hex::{AxialCoordinates, DEFAULT_HEX_SIZE},
+};
 
 #[derive(Component)]
 struct ZeppelinWrapper;
@@ -34,14 +38,21 @@ struct PossibleCourse(AxialCoordinates);
 fn read_selected_tiles(
     mut reader: MessageReader<SelectTileMessage>,
     possible_course_maybe: Option<Res<PossibleCourse>>,
+    zeppelin: Single<&Transform, With<ZeppelinWrapper>>,
     mut commands: Commands,
 ) {
     for ev in reader.read() {
-        if possible_course_maybe.as_ref().is_some_and(|course| course.0 == ev.0) {
+        if possible_course_maybe
+            .as_ref()
+            .is_some_and(|course| course.0 == ev.0)
+        {
             commands.remove_resource::<PossibleCourse>();
         } else {
             commands.insert_resource(PossibleCourse(ev.0));
-            commands.spawn(Pathfinder::new());
+            commands.spawn((Name::from("ZeppelinPath"), Pathfinder::new(
+                AxialCoordinates::from_world_coordinates(zeppelin.translation, DEFAULT_HEX_SIZE),
+                ev.0,
+            )));
         }
     }
 }
