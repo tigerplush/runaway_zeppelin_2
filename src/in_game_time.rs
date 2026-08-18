@@ -133,7 +133,6 @@ fn apply_speed(time: &mut Time<Virtual>, in_game_time: &InGameTime) {
             time.set_relative_speed(4.0)
         }
     };
-    info!("{:?}", time);
 }
 
 pub fn plugin(app: &mut App) {
