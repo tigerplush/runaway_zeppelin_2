@@ -5,6 +5,7 @@ mod camera;
 mod in_game_time;
 mod input;
 mod map_generation;
+mod pathfinding;
 mod pointer;
 mod states;
 mod utils;
@@ -28,6 +29,7 @@ impl Plugin for AppPlugin {
             in_game_time::plugin,
             input::plugin,
             map_generation::plugin,
+            pathfinding::plugin,
             pointer::plugin,
             states::plugin,
             zeppelin::plugin,

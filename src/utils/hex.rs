@@ -1,3 +1,5 @@
+use std::ops::{Add, Sub};
+
 use bevy::prelude::*;
 
 // use Vec3 as WorldCoordinates;
@@ -5,13 +7,31 @@ type WorldCoordinates = Vec3;
 
 pub const DEFAULT_HEX_SIZE: Vec2 = Vec2::new(0.5, 0.5);
 
-#[derive(Clone, Copy, Debug, PartialEq, Reflect)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Reflect)]
 pub struct AxialCoordinates {
     pub q: isize,
     pub r: isize,
 }
 
 impl AxialCoordinates {
+    pub const UPPER_LEFT: AxialCoordinates = AxialCoordinates::new(0, -1);
+    pub const UPPER_RIGHT: AxialCoordinates = AxialCoordinates::new(1, -1);
+    pub const RIGHT: AxialCoordinates = AxialCoordinates::new(1, 0);
+    pub const BOTTOM_RIGHT: AxialCoordinates = AxialCoordinates::new(0, 1);
+    pub const BOTTOM_LEFT: AxialCoordinates = AxialCoordinates::new(-1, 1);
+    pub const LEFT: AxialCoordinates = AxialCoordinates::new(-1, 0);
+
+    pub const ZERO: AxialCoordinates = AxialCoordinates::new(0, 0);
+
+    pub const DIRECTIONS: [AxialCoordinates; 6] = [
+        Self::UPPER_LEFT,
+        Self::UPPER_RIGHT,
+        Self::RIGHT,
+        Self::BOTTOM_RIGHT,
+        Self::BOTTOM_LEFT,
+        Self::LEFT,
+    ];
+
     pub const fn new(q: isize, r: isize) -> Self {
         Self {
             q,
@@ -33,6 +53,23 @@ impl AxialCoordinates {
         let x = size.x * (3_f32.sqrt() * self.q as f32 + 3_f32.sqrt() / 2.0 * self.r as f32);
         let z = size.y * (3.0 / 2.0 * self.r as f32);
         Vec3::new(x, 0.0, z)
+    }
+
+    pub fn neighbors(&self) -> Vec<AxialCoordinates> {
+        Self::DIRECTIONS.iter().map(|&e| e + *self).collect()
+    }
+
+    pub fn distance(&self, rhs: &AxialCoordinates) -> usize {
+        let lhs: ICubeCoordinates = self.into();
+        let rhs: ICubeCoordinates = rhs.into();
+        lhs.distance(&rhs)
+    }
+}
+
+impl Add for AxialCoordinates {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        Self::new(self.q + rhs.q, self.r + rhs.r)
     }
 }
 
@@ -74,6 +111,32 @@ impl ICubeCoordinates {
             q: q as isize,
             r: r as isize,
             s: s as isize,
+        }
+    }
+
+    fn distance(&self, rhs: &ICubeCoordinates) -> usize {
+        let diff = self - rhs;
+        (diff.q.unsigned_abs() + diff.r.unsigned_abs() + diff.s.unsigned_abs()) / 2
+    }
+}
+
+impl From<&AxialCoordinates> for ICubeCoordinates {
+    fn from(value: &AxialCoordinates) -> Self {
+        Self {
+            q: value.q,
+            r: value.r,
+            s: -value.q - value.r
+        }
+    }
+}
+
+impl Sub<&ICubeCoordinates> for &ICubeCoordinates {
+    type Output = ICubeCoordinates;
+    fn sub(self, rhs: &ICubeCoordinates) -> Self::Output {
+        Self::Output {
+            q: self.q - rhs.q,
+            r: self.r - rhs.r,
+            s: self.s - rhs.s,
         }
     }
 }
