@@ -1,10 +1,8 @@
 use std::f32::consts::PI;
 
 use bevy::prelude::*;
-use bevy_enhanced_input::preset::axial::Axial;
 
 use crate::{
-    pathfinding::{Path, Pathfinder},
     pointer::SelectTileMessage,
     utils::hex::{AxialCoordinates, DEFAULT_HEX_SIZE},
 };
@@ -25,7 +23,7 @@ fn setup(
             Transform::default(),
             ZeppelinMovementSettings {
                 speed: 0.5,
-                maximum_turn_rate: 45.0_f32.to_radians(),
+                maximum_turn_radius: 1.0,
             },
         ))
         .with_child((
@@ -38,44 +36,68 @@ fn setup(
 #[derive(Component, Reflect)]
 #[reflect(Component)]
 struct ZeppelinPath {
-    points: Vec<Vec3>,
-    current: usize,
+    start: Vec3,
+    target: Vec3,
+    center: Vec3,
+    radius: f32,
+    turn_left: bool,
+    tangent_point: Vec3,
+    sweep: f32,
+    arc_length: f32,
+    straight_length: f32,
 }
 
 impl ZeppelinPath {
-    const ARRIVAL_RADIUS: f32 = 0.1;
+    fn new(start: Vec3, heading: Vec3, target: Vec3, radius: f32) -> Result<Self, ()> {
+        let to_target = target - start;
+        let turn_left = heading.x * to_target.z - heading.z * to_target.x > 0.0;
 
-    fn simply_hex_path(path: &[AxialCoordinates]) -> Vec<AxialCoordinates> {
-        if path.len() <= 2 {
-            return path.to_vec();
+        let side_normal = if turn_left {
+            Vec3::new(-heading.z, 0.0, heading.x)
+        } else {
+            Vec3::new(heading.z, 0.0, -heading.x)
+        };
+        let center = start + side_normal * radius;
+
+        let center_to_target = target - center;
+        let d = center_to_target.length();
+        if d < radius {
+            return Err(()); // target's inside the turning circle, no CS solution
         }
 
-        let mut simplified = vec![path[0]];
-        for window in path.windows(3) {
-            let [prev, curr, next] = window else {
-                unreachable!()
+        let base_angle = center_to_target.z.atan2(center_to_target.x);
+        let theta = (radius / d).acos();
+
+        for angle in [base_angle + theta, base_angle - theta] {
+            let tangent_point = center + radius * Vec3::new(angle.cos(), 0.0, angle.sin());
+            let radius_dir = (tangent_point - center).normalize();
+            let travel_dir = if turn_left {
+                Vec3::new(-radius_dir.z, 0.0, radius_dir.x)
+            } else {
+                Vec3::new(radius_dir.z, 0.0, -radius_dir.x)
             };
-            let incoming = (curr.q - prev.q, curr.r - prev.r);
-            let outgoing = (next.q - curr.q, next.r - curr.r);
-            if incoming != outgoing {
-                simplified.push(*curr);
+            if travel_dir.dot(target - tangent_point) > 0.0 {
+                let start_angle = (start - center).z.atan2((start - center).x);
+                let sweep = if turn_left {
+                    angle - start_angle
+                } else {
+                    start_angle - angle
+                }
+                .rem_euclid(std::f32::consts::TAU);
+                return Ok(Self {
+                    start,
+                    target,
+                    center,
+                    radius,
+                    turn_left,
+                    tangent_point,
+                    sweep,
+                    arc_length: radius * sweep,
+                    straight_length: (target - tangent_point).length(),
+                });
             }
         }
-        simplified.push(*path.last().unwrap());
-        simplified
-    }
-}
-
-impl From<&Path> for ZeppelinPath {
-    fn from(value: &Path) -> Self {
-        let points = Self::simply_hex_path(value.points());
-        Self {
-            points: points
-                .iter()
-                .map(|p| p.to_world_coordinates(DEFAULT_HEX_SIZE))
-                .collect(),
-            current: 0,
-        }
+        Err(())
     }
 }
 
@@ -83,23 +105,7 @@ impl From<&Path> for ZeppelinPath {
 #[reflect(Component)]
 struct ZeppelinMovementSettings {
     speed: f32,
-    maximum_turn_rate: f32,
-}
-
-fn transform_path_to_zeppelin_path(
-    trigger: On<Insert, Path>,
-    query: Query<&Path>,
-    zeppelin: Single<Entity, With<ZeppelinWrapper>>,
-    mut commands: Commands,
-) {
-    let Ok(path) = query.get(trigger.entity) else {
-        return;
-    };
-
-    commands
-        .entity(zeppelin.entity())
-        .insert(ZeppelinPath::from(path));
-    commands.entity(trigger.entity).despawn();
+    maximum_turn_radius: f32,
 }
 
 #[derive(Reflect, Resource)]
@@ -110,9 +116,10 @@ struct PossibleCourse(AxialCoordinates);
 fn read_selected_tiles(
     mut reader: MessageReader<SelectTileMessage>,
     possible_course_maybe: Option<Res<PossibleCourse>>,
-    zeppelin: Single<&Transform, With<ZeppelinWrapper>>,
+    zeppelin: Single<(Entity, &Transform, &ZeppelinMovementSettings), With<ZeppelinWrapper>>,
     mut commands: Commands,
 ) {
+    let (zeppelin, transform, settings) = zeppelin.into_inner();
     for ev in reader.read() {
         if possible_course_maybe
             .as_ref()
@@ -121,53 +128,28 @@ fn read_selected_tiles(
             commands.remove_resource::<PossibleCourse>();
         } else {
             commands.insert_resource(PossibleCourse(ev.0));
-            commands
-                .spawn((
-                    Name::from("ZeppelinPath"),
-                    Pathfinder::new(
-                        AxialCoordinates::from_world_coordinates(
-                            zeppelin.translation,
-                            DEFAULT_HEX_SIZE,
-                        ),
-                        ev.0,
-                    ),
-                ))
-                .observe(transform_path_to_zeppelin_path);
+            let target = ev.0.to_world_coordinates(DEFAULT_HEX_SIZE);
+            if let Ok(zeppelin_path) = ZeppelinPath::new(
+                transform.translation,
+                transform.forward().as_vec3(),
+                target,
+                settings.maximum_turn_radius,
+            ) {
+                commands.entity(zeppelin).insert(zeppelin_path);
+            }
         }
     }
 }
 
+fn tick_path() {
+
+}
+
 fn follow_path(
-    time: Res<Time>,
-    mut query: Query<(&mut Transform, &mut ZeppelinPath, &ZeppelinMovementSettings)>,
+    mut query: Query<(&mut Transform, &ZeppelinPath)>,
 ) {
-    for (mut transform, mut path, settings) in &mut query {
-        let Some(&target) = path.points.get(path.current) else {
-            continue;
-        };
-
-        let to_target = target - transform.translation;
-        if to_target.length() < ZeppelinPath::ARRIVAL_RADIUS {
-            path.current += 1;
-            continue;
-        }
-
-        let desired_forward = to_target.normalize();
-        let current_forward = transform.forward().as_vec3();
-        let angle = current_forward.angle_between(desired_forward);
-        let max_step = settings.maximum_turn_rate * time.delta_secs();
-
-        let new_forward = if angle <= max_step {
-            desired_forward
-        } else {
-            current_forward
-                .slerp(desired_forward, max_step / angle)
-                .normalize()
-        };
-        transform.look_to(new_forward, Vec3::Y);
-
-        let forward = transform.forward().as_vec3();
-        transform.translation += forward * settings.speed * time.delta_secs();
+    for (mut transform, path) in &mut query {
+        
     }
 }
 
@@ -188,13 +170,25 @@ fn debug_course(
 
 #[cfg(debug_assertions)]
 fn debug_zeppelin_path(mut gizmos: Gizmos, zeppelin: Single<&ZeppelinPath>) {
-    let current = zeppelin.current;
-    for (index, points) in zeppelin.points.windows(2).enumerate() {
-        use bevy::color::palettes::css::{GREEN, ORANGE};
+    use bevy::color::palettes::css::PURPLE;
 
-        let color = if index == current { GREEN } else { ORANGE };
-        gizmos.arrow(points[0], points[1], color);
-    }
+    // Drawn manually (not via short_arc_3d_between/long_arc_3d_between) because Bevy's
+    // long-arc helper only lands on `to` when the short angle is exactly PI - otherwise
+    // it sweeps the same direction as the short arc and ends on a mirrored point instead.
+    let to_start = zeppelin.start - zeppelin.center;
+    let start_angle = to_start.z.atan2(to_start.x);
+    let resolution = 32;
+    let points = (0..=resolution).map(|i| {
+        let t = i as f32 / resolution as f32;
+        let angle = if zeppelin.turn_left {
+            start_angle + zeppelin.sweep * t
+        } else {
+            start_angle - zeppelin.sweep * t
+        };
+        zeppelin.center + zeppelin.radius * Vec3::new(angle.cos(), 0.0, angle.sin())
+    });
+    gizmos.linestrip(points, PURPLE);
+    gizmos.line(zeppelin.tangent_point, zeppelin.target, PURPLE);
 }
 
 #[cfg(debug_assertions)]
@@ -211,7 +205,7 @@ fn debug_zeppelin_forward(mut gizmos: Gizmos, zeppelin: Single<&Transform, With<
 pub fn plugin(app: &mut App) {
     app.register_type::<PossibleCourse>()
         .add_systems(Startup, setup)
-        .add_systems(Update, (read_selected_tiles, follow_path));
+        .add_systems(Update, (read_selected_tiles, tick_path, follow_path));
 
     #[cfg(debug_assertions)]
     app.add_systems(
