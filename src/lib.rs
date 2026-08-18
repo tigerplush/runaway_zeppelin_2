@@ -8,6 +8,7 @@ mod map_generation;
 mod pointer;
 mod states;
 mod utils;
+mod zeppelin;
 
 fn spawn_light(mut commands: Commands) {
     commands.spawn((
@@ -29,6 +30,7 @@ impl Plugin for AppPlugin {
             map_generation::plugin,
             pointer::plugin,
             states::plugin,
+            zeppelin::plugin,
         ))
         .add_systems(Startup, spawn_light);
     }
