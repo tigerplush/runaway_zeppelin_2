@@ -15,3 +15,12 @@ On some structures, the Zeppelin can moor, which is far less dangerous.
 Historically, a zeppelin had ram air turbines to supply electricity to the zeppelin. In Runaway Zeppelin this is the case, too. The zeppelin has batteries that can only supply everything for half an hour. At cruising velocity, the ram air turbines supply electricity. There are emergency petrol generators, too.
 When the radio room is supplied with electricity, it can detect signals (including [[Storm]]s) via the radio direction finder.
 Gameplay mechanics wise, when the zeppelin is moving at cruising velocity, the radio room will charge up and when the charge up is done, send a ping. Visually this should be communicated to the user like a sonar ping. The user is then informed about directions and signal strengths of "radio" POIs. Radio POIs are mostly [[Storm]]s, but can be previously crashed zeppelins or survivors.
+
+# LZ127
+1. Active Braking (Full Reverse Thrust)
+This value simulates all five Maybach engines shifted into reverse gear at maximum throttle.Deceleration Rate: 0.35 to 0.45 m/s²Gameplay Behavior: It takes about 70 to 90 seconds of sustained full reverse thrust to bring the airship from its top cruising speed to a dead stop.Stopping Distance: The ship will glide roughly 1.1 to 1.4 kilometers before halting completely.
+2. Passive Braking (Coasting / Cutting Throttle)
+This value simulates the deceleration caused solely by the aerodynamic drag of the giant hull when the engines are set to neutral/zero thrust. Because the rigid hull is highly streamlined, it bleeds speed incredibly slowly.
+Deceleration Rate: 0.05 to 0.08 m/s² (At top speed; drops exponentially as speed decreases).Gameplay Behavior: It takes 6 to 8 minutes to naturally drift to a stop without active reverse thrust.Stopping Distance: The ship will drift for 4 to 6 kilometers through the air before coming to a standstill.
+3. Emergency "Airbrake" Maneuver (Nose-Up Pitch)
+If the pilot forces the airship's elevators hard up to tilt the nose upward (10° to 15°), the broad underside of the 776-foot hull catches the wind like a sail.Deceleration Rate: Adds an extra 0.15 m/s² of aerodynamic drag.Combined Emergency Braking: Full Reverse + Pitch Up = 0.55 m/s²

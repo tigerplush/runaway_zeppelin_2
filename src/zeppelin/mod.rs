@@ -1,11 +1,14 @@
-use std::f32::consts::PI;
+use std::{f32::consts::PI, time::Duration};
 
 use bevy::prelude::*;
 
 use crate::{
     pointer::SelectTileMessage,
-    utils::hex::{AxialCoordinates, DEFAULT_HEX_SIZE},
+    utils::{hex::*, types::*},
+    zeppelin::zeppelin_path::ZeppelinPath,
 };
+
+mod zeppelin_path;
 
 #[derive(Component)]
 struct ZeppelinWrapper;
@@ -21,91 +24,59 @@ fn setup(
             ZeppelinWrapper,
             Visibility::Inherited,
             Transform::default(),
-            ZeppelinMovementSettings {
-                speed: 0.5,
-                maximum_turn_radius: 1.0,
-            },
+            ZeppelinMovementSettings::new(
+                Velocity(33.0),
+                Acceleration(0.15),
+                Acceleration(0.35),
+                10.0,
+            ),
         ))
         .with_child((
             Mesh3d(meshes.add(Capsule3d::default())),
             MeshMaterial3d(materials.add(StandardMaterial::default())),
-            Transform::from_xyz(0.0, 1.0, 0.0).with_rotation(Quat::from_rotation_x(-PI / 2.0)),
+            Transform::from_xyz(0.0, 10.0, 0.0).with_rotation(Quat::from_rotation_x(-PI / 2.0)),
         ));
 }
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
-struct ZeppelinPath {
-    start: Vec3,
-    target: Vec3,
-    center: Vec3,
-    radius: f32,
-    turn_left: bool,
-    tangent_point: Vec3,
-    sweep: f32,
-    arc_length: f32,
-    straight_length: f32,
-}
-
-impl ZeppelinPath {
-    fn new(start: Vec3, heading: Vec3, target: Vec3, radius: f32) -> Result<Self, ()> {
-        let to_target = target - start;
-        let turn_left = heading.x * to_target.z - heading.z * to_target.x > 0.0;
-
-        let side_normal = if turn_left {
-            Vec3::new(-heading.z, 0.0, heading.x)
-        } else {
-            Vec3::new(heading.z, 0.0, -heading.x)
-        };
-        let center = start + side_normal * radius;
-
-        let center_to_target = target - center;
-        let d = center_to_target.length();
-        if d < radius {
-            return Err(()); // target's inside the turning circle, no CS solution
-        }
-
-        let base_angle = center_to_target.z.atan2(center_to_target.x);
-        let theta = (radius / d).acos();
-
-        for angle in [base_angle + theta, base_angle - theta] {
-            let tangent_point = center + radius * Vec3::new(angle.cos(), 0.0, angle.sin());
-            let radius_dir = (tangent_point - center).normalize();
-            let travel_dir = if turn_left {
-                Vec3::new(-radius_dir.z, 0.0, radius_dir.x)
-            } else {
-                Vec3::new(radius_dir.z, 0.0, -radius_dir.x)
-            };
-            if travel_dir.dot(target - tangent_point) > 0.0 {
-                let start_angle = (start - center).z.atan2((start - center).x);
-                let sweep = if turn_left {
-                    angle - start_angle
-                } else {
-                    start_angle - angle
-                }
-                .rem_euclid(std::f32::consts::TAU);
-                return Ok(Self {
-                    start,
-                    target,
-                    center,
-                    radius,
-                    turn_left,
-                    tangent_point,
-                    sweep,
-                    arc_length: radius * sweep,
-                    straight_length: (target - tangent_point).length(),
-                });
-            }
-        }
-        Err(())
-    }
-}
-
-#[derive(Component, Reflect)]
-#[reflect(Component)]
 struct ZeppelinMovementSettings {
-    speed: f32,
+    current_speed: Velocity,
+    cruising_speed: Velocity,
+    acceleration: Acceleration,
+    deceleration: Acceleration,
     maximum_turn_radius: f32,
+}
+
+impl ZeppelinMovementSettings {
+    fn new(
+        cruising_speed: Velocity,
+        acceleration: Acceleration,
+        deceleration: Acceleration,
+        maximum_turn_radius: f32,
+    ) -> Self {
+        Self {
+            current_speed: Velocity(0.0),
+            cruising_speed,
+            acceleration,
+            deceleration,
+            maximum_turn_radius,
+        }
+    }
+
+    fn breaking_distance(&self) -> Length {
+        self.current_speed.squared() / (2.0 * self.deceleration)
+    }
+
+    fn accelerate(&mut self, delta: &Duration) {
+        self.current_speed += self.acceleration * delta;
+        self.current_speed = self.current_speed.clamp(Velocity(0.0), self.cruising_speed);
+    }
+
+    fn decelerate(&mut self, delta: &Duration) {
+        self.current_speed -= self.deceleration * delta;
+        self.current_speed = self.current_speed.clamp(Velocity(0.0), self.cruising_speed);
+    }
 }
 
 #[derive(Reflect, Resource)]
@@ -141,15 +112,59 @@ fn read_selected_tiles(
     }
 }
 
-fn tick_path() {
-
+fn control_speed(
+    time: Res<Time>,
+    mut query: Query<(&ZeppelinPath, &mut ZeppelinMovementSettings)>,
+) {
+    for (path, mut settings) in &mut query {
+        if path.remaining_length() < settings.breaking_distance().0 {
+            settings.decelerate(&time.delta());
+        } else {
+            settings.accelerate(&time.delta());
+        }
+    }
 }
 
-fn follow_path(
-    mut query: Query<(&mut Transform, &ZeppelinPath)>,
-) {
-    for (mut transform, path) in &mut query {
-        
+fn tick_path(time: Res<Time>, mut query: Query<(&mut ZeppelinPath, &ZeppelinMovementSettings)>) {
+    for (mut path, settings) in &mut query {
+        let distance = settings.current_speed * time.delta();
+        path.distance_traveled += distance.0;
+    }
+}
+
+fn follow_path(mut commands: Commands, mut query: Query<(Entity, &mut Transform, &ZeppelinPath)>) {
+    for (entity, mut transform, path) in &mut query {
+        let (position, forward) = if path.distance_traveled <= path.arc_length {
+            let start_angle = path.start_angle();
+            let swept = path.distance_traveled / path.radius;
+            let angle = if path.turn_left {
+                start_angle + swept
+            } else {
+                start_angle - swept
+            };
+            let position = path.center + path.radius * Vec3::new(angle.cos(), 0.0, angle.sin());
+            let radius_dir = (position - path.center).normalize();
+            let forward = if path.turn_left {
+                Vec3::new(-radius_dir.z, 0.0, radius_dir.x)
+            } else {
+                Vec3::new(radius_dir.z, 0.0, -radius_dir.x)
+            };
+            (position, forward)
+        } else {
+            let t =
+                (path.distance_traveled - path.arc_length) / path.straight_length.max(f32::EPSILON);
+            (
+                path.tangent_point.lerp(path.target, t.clamp(0.0, 1.0)),
+                (path.target - path.tangent_point).normalize(),
+            )
+        };
+
+        transform.translation = position;
+        transform.look_to(forward, Vec3::Y);
+
+        if path.is_completed() {
+            commands.entity(entity).remove::<ZeppelinPath>();
+        }
     }
 }
 
@@ -175,8 +190,7 @@ fn debug_zeppelin_path(mut gizmos: Gizmos, zeppelin: Single<&ZeppelinPath>) {
     // Drawn manually (not via short_arc_3d_between/long_arc_3d_between) because Bevy's
     // long-arc helper only lands on `to` when the short angle is exactly PI - otherwise
     // it sweeps the same direction as the short arc and ends on a mirrored point instead.
-    let to_start = zeppelin.start - zeppelin.center;
-    let start_angle = to_start.z.atan2(to_start.x);
+    let start_angle = zeppelin.start_angle();
     let resolution = 32;
     let points = (0..=resolution).map(|i| {
         let t = i as f32 / resolution as f32;
@@ -205,7 +219,10 @@ fn debug_zeppelin_forward(mut gizmos: Gizmos, zeppelin: Single<&Transform, With<
 pub fn plugin(app: &mut App) {
     app.register_type::<PossibleCourse>()
         .add_systems(Startup, setup)
-        .add_systems(Update, (read_selected_tiles, tick_path, follow_path));
+        .add_systems(
+            Update,
+            (read_selected_tiles, control_speed, tick_path, follow_path),
+        );
 
     #[cfg(debug_assertions)]
     app.add_systems(
