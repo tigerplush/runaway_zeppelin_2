@@ -1,6 +1,7 @@
 use std::f32::consts::PI;
 
 use bevy::prelude::*;
+use bevy_enhanced_input::preset::axial::Axial;
 
 use crate::{
     pathfinding::{Path, Pathfinder},
@@ -43,13 +44,33 @@ struct ZeppelinPath {
 
 impl ZeppelinPath {
     const ARRIVAL_RADIUS: f32 = 0.1;
+
+    fn simply_hex_path(path: &[AxialCoordinates]) -> Vec<AxialCoordinates> {
+        if path.len() <= 2 {
+            return path.to_vec();
+        }
+
+        let mut simplified = vec![path[0]];
+        for window in path.windows(3) {
+            let [prev, curr, next] = window else {
+                unreachable!()
+            };
+            let incoming = (curr.q - prev.q, curr.r - prev.r);
+            let outgoing = (next.q - curr.q, next.r - curr.r);
+            if incoming != outgoing {
+                simplified.push(*curr);
+            }
+        }
+        simplified.push(*path.last().unwrap());
+        simplified
+    }
 }
 
 impl From<&Path> for ZeppelinPath {
     fn from(value: &Path) -> Self {
+        let points = Self::simply_hex_path(value.points());
         Self {
-            points: value
-                .points()
+            points: points
                 .iter()
                 .map(|p| p.to_world_coordinates(DEFAULT_HEX_SIZE))
                 .collect(),
