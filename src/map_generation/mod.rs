@@ -7,7 +7,13 @@ use bevy::prelude::*;
 use bevy_rand::{global::GlobalRng, prelude::ChaCha8Rng};
 use rand::RngExt;
 
-use crate::utils::hex::{AxialCoordinates, DEFAULT_HEX_SIZE};
+use crate::{
+    map_generation::poi::Poi,
+    utils::hex::{AxialCoordinates, DEFAULT_HEX_SIZE},
+    zeppelin::ReachedCoordinatesMessage,
+};
+
+mod poi;
 
 struct Grid {
     contents: Vec<Option<usize>>,
@@ -159,10 +165,31 @@ fn spawn_map(
             Mesh3d(meshes.add(Extrusion::new(RegularPolygon::default(), 0.1))),
             MeshMaterial3d(materials.add(StandardMaterial::default())),
             Transform::from_rotation(Quat::from_rotation_x(-PI / 2.)).with_translation(translation),
+            Poi(AxialCoordinates::from_world_coordinates(
+                translation,
+                DEFAULT_HEX_SIZE,
+            )),
         ));
     }
 }
 
+#[derive(Message)]
+pub struct ReachedPoiMessage(pub Entity);
+
+fn read_reached_coordinates(
+    mut reader: MessageReader<ReachedCoordinatesMessage>,
+    query: Query<(Entity, &Poi)>,
+    mut writer: MessageWriter<ReachedPoiMessage>,
+) {
+    for ev in reader.read() {
+        if let Some((entity, _poi)) = query.iter().find(|&(_entity, poi)| poi.0 == ev.0) {
+            writer.write(ReachedPoiMessage(entity));
+        }
+    }
+}
+
 pub fn plugin(app: &mut App) {
-    app.add_systems(Startup, spawn_map);
+    app.add_message::<ReachedPoiMessage>()
+        .add_systems(Startup, spawn_map)
+        .add_systems(Update, read_reached_coordinates);
 }

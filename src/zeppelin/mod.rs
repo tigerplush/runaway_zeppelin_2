@@ -13,31 +13,6 @@ mod zeppelin_path;
 #[derive(Component)]
 struct ZeppelinWrapper;
 
-fn setup(
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut commands: Commands,
-) {
-    commands
-        .spawn((
-            Name::from("Zeppelin Wrapper"),
-            ZeppelinWrapper,
-            Visibility::Inherited,
-            Transform::default(),
-            ZeppelinMovementSettings::new(
-                Velocity(33.0),
-                Acceleration(0.15),
-                Acceleration(0.35),
-                10.0,
-            ),
-        ))
-        .with_child((
-            Mesh3d(meshes.add(Capsule3d::default())),
-            MeshMaterial3d(materials.add(StandardMaterial::default())),
-            Transform::from_xyz(0.0, 10.0, 0.0).with_rotation(Quat::from_rotation_x(-PI / 2.0)),
-        ));
-}
-
 #[derive(Component, Reflect)]
 #[reflect(Component)]
 struct ZeppelinMovementSettings {
@@ -64,7 +39,7 @@ impl ZeppelinMovementSettings {
         }
     }
 
-    fn breaking_distance(&self) -> Length {
+    fn braking_distance(&self) -> Length {
         self.current_speed.squared() / (2.0 * self.deceleration)
     }
 
@@ -77,6 +52,31 @@ impl ZeppelinMovementSettings {
         self.current_speed -= self.deceleration * delta;
         self.current_speed = self.current_speed.clamp(Velocity(0.0), self.cruising_speed);
     }
+}
+
+fn setup(
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut commands: Commands,
+) {
+    commands
+        .spawn((
+            Name::from("Zeppelin Wrapper"),
+            ZeppelinWrapper,
+            Visibility::Inherited,
+            Transform::default(),
+            ZeppelinMovementSettings::new(
+                Velocity(33.0),
+                Acceleration(0.15),
+                Acceleration(0.35),
+                10.0,
+            ),
+        ))
+        .with_child((
+            Mesh3d(meshes.add(Capsule3d::default())),
+            MeshMaterial3d(materials.add(StandardMaterial::default())),
+            Transform::from_xyz(0.0, 10.0, 0.0).with_rotation(Quat::from_rotation_x(-PI / 2.0)),
+        ));
 }
 
 #[derive(Reflect, Resource)]
@@ -117,7 +117,7 @@ fn control_speed(
     mut query: Query<(&ZeppelinPath, &mut ZeppelinMovementSettings)>,
 ) {
     for (path, mut settings) in &mut query {
-        if path.remaining_length() < settings.breaking_distance().0 {
+        if path.remaining_length() <= settings.braking_distance().0 {
             settings.decelerate(&time.delta());
         } else {
             settings.accelerate(&time.delta());
@@ -132,7 +132,14 @@ fn tick_path(time: Res<Time>, mut query: Query<(&mut ZeppelinPath, &ZeppelinMove
     }
 }
 
-fn follow_path(mut commands: Commands, mut query: Query<(Entity, &mut Transform, &ZeppelinPath)>) {
+#[derive(Message)]
+pub struct ReachedCoordinatesMessage(pub AxialCoordinates);
+
+fn follow_path(
+    mut writer: MessageWriter<ReachedCoordinatesMessage>,
+    mut query: Query<(Entity, &mut Transform, &ZeppelinPath)>,
+    mut commands: Commands,
+) {
     for (entity, mut transform, path) in &mut query {
         let (position, forward) = if path.distance_traveled <= path.arc_length {
             let start_angle = path.start_angle();
@@ -164,7 +171,22 @@ fn follow_path(mut commands: Commands, mut query: Query<(Entity, &mut Transform,
 
         if path.is_completed() {
             commands.entity(entity).remove::<ZeppelinPath>();
+            writer.write(ReachedCoordinatesMessage(
+                AxialCoordinates::from_world_coordinates(transform.translation, DEFAULT_HEX_SIZE),
+            ));
         }
+    }
+}
+
+fn brake(
+    time: Res<Time>,
+    mut query: Query<(&mut Transform, &mut ZeppelinMovementSettings), Without<ZeppelinPath>>,
+) {
+    for (mut transform, mut settings) in &mut query {
+        settings.decelerate(&time.delta());
+        let distance = settings.current_speed * time.delta();
+        let forward = transform.forward();
+        transform.translation += forward * distance.0;
     }
 }
 
@@ -207,21 +229,21 @@ fn debug_zeppelin_path(mut gizmos: Gizmos, zeppelin: Single<&ZeppelinPath>) {
 
 #[cfg(debug_assertions)]
 fn debug_zeppelin_forward(mut gizmos: Gizmos, zeppelin: Single<&Transform, With<ZeppelinWrapper>>) {
-    use bevy::color::palettes::css::BLUE;
-
-    gizmos.arrow(
-        zeppelin.translation,
-        zeppelin.translation + 1.0 * zeppelin.forward(),
-        BLUE,
-    );
+    let transform = zeppelin.into_inner();
+    gizmos.axes(*transform, 1.0);
 }
 
 pub fn plugin(app: &mut App) {
     app.register_type::<PossibleCourse>()
+        .add_message::<ReachedCoordinatesMessage>()
         .add_systems(Startup, setup)
         .add_systems(
             Update,
-            (read_selected_tiles, control_speed, tick_path, follow_path),
+            (
+                read_selected_tiles,
+                brake,
+                (control_speed, tick_path, follow_path).chain(),
+            ),
         );
 
     #[cfg(debug_assertions)]
