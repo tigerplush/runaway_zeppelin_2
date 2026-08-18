@@ -22,8 +22,10 @@ fn calculate_paths(mut query: Query<(Entity, &mut Pathfinder)>, mut commands: Co
     }
 }
 
+#[cfg(debug_assertions)]
 fn debug_pathfinder(mut gizmos: Gizmos, query: Query<&Pathfinder>) {}
 
+#[cfg(debug_assertions)]
 fn debug_path(mut gizmos: Gizmos, query: Query<&Path>) {
     for path in &query {
         for point in path.points().windows(2) {
