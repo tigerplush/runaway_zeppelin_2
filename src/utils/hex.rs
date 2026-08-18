@@ -5,7 +5,7 @@ type WorldCoordinates = Vec3;
 
 pub const DEFAULT_HEX_SIZE: Vec2 = Vec2::new(0.5, 0.5);
 
-#[derive(Clone, Copy, Debug, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Reflect)]
 pub struct AxialCoordinates {
     pub q: isize,
     pub r: isize,
