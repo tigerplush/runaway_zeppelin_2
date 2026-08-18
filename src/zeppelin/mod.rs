@@ -176,6 +176,17 @@ fn debug_zeppelin_path(mut gizmos: Gizmos, zeppelin: Single<&ZeppelinPath>) {
     }
 }
 
+#[cfg(debug_assertions)]
+fn debug_zeppelin_forward(mut gizmos: Gizmos, zeppelin: Single<&Transform, With<ZeppelinWrapper>>) {
+    use bevy::color::palettes::css::BLUE;
+
+    gizmos.arrow(
+        zeppelin.translation,
+        zeppelin.translation + 1.0 * zeppelin.forward(),
+        BLUE,
+    );
+}
+
 pub fn plugin(app: &mut App) {
     app.register_type::<PossibleCourse>()
         .add_systems(Startup, setup)
@@ -187,6 +198,7 @@ pub fn plugin(app: &mut App) {
         (
             debug_course.run_if(resource_exists::<PossibleCourse>),
             debug_zeppelin_path,
+            debug_zeppelin_forward,
         ),
     );
 }
