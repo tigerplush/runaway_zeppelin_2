@@ -25,18 +25,19 @@ pub struct AppPlugin;
 
 impl Plugin for AppPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(EntropyPlugin::<ChaCha8Rng>::default()).add_plugins((
-            camera::plugin,
-            in_game_time::plugin,
-            input::plugin,
-            map_generation::plugin,
-            pathfinding::plugin,
-            pointer::plugin,
-            states::plugin,
-            ui::plugin,
-            utils::plugin,
-            zeppelin::plugin,
-        ))
-        .add_systems(Startup, spawn_light);
+        app.add_plugins(EntropyPlugin::<ChaCha8Rng>::default())
+            .add_plugins((
+                camera::plugin,
+                in_game_time::plugin,
+                input::plugin,
+                map_generation::plugin,
+                pathfinding::plugin,
+                pointer::plugin,
+                states::plugin,
+                ui::plugin,
+                utils::plugin,
+                zeppelin::plugin,
+            ))
+            .add_systems(Startup, spawn_light);
     }
 }

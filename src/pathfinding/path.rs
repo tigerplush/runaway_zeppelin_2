@@ -17,4 +17,3 @@ impl Path {
         &self.points
     }
 }
-

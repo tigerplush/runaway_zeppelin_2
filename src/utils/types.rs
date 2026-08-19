@@ -1,5 +1,6 @@
 use std::{
-    ops::{Add, AddAssign, Div, Mul, Sub, SubAssign}, time::Duration,
+    ops::{Add, AddAssign, Div, Mul, Sub, SubAssign},
+    time::Duration,
 };
 
 use bevy::{math::FloatPow, prelude::*};

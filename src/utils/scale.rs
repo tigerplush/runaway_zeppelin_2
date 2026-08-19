@@ -37,5 +37,6 @@ impl Default for WorldScale {
 }
 
 pub fn plugin(app: &mut App) {
-    app.init_resource::<WorldScale>().register_type::<WorldScale>();
+    app.init_resource::<WorldScale>()
+        .register_type::<WorldScale>();
 }

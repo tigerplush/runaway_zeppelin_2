@@ -3,7 +3,9 @@ use std::{f32::consts::PI, time::Duration};
 use bevy::prelude::*;
 
 use crate::{
-    in_game_time::InGame, pointer::SelectTileMessage, utils::{hex::*, scale::WorldScale, types::*}, zeppelin::zeppelin_path::ZeppelinPath,
+    pointer::SelectTileMessage,
+    utils::{hex::*, scale::WorldScale, types::*},
+    zeppelin::zeppelin_path::ZeppelinPath,
 };
 
 mod zeppelin_path;
@@ -68,10 +70,10 @@ fn setup(
             Visibility::Inherited,
             Transform::default(),
             ZeppelinMovementSettings::new(
-                Velocity(scale.units(33.0)),    // real LZ127 cruise speed, 33 m/s
+                Velocity(scale.units(33.0)),     // real LZ127 cruise speed, 33 m/s
                 Acceleration(scale.units(0.15)), // real LZ127 acceleration, 0.15 m/s²
                 Acceleration(scale.units(0.35)), // real LZ127 deceleration, 0.35 m/s²
-                scale.units(100.0),               // real LZ127 turning radius, 100m
+                scale.units(100.0),              // real LZ127 turning radius, 100m
             ),
         ))
         .with_child((
@@ -146,7 +148,12 @@ fn read_selected_tiles(
                 );
                 let hours = time.as_secs() / 3600;
                 let mins = (time.as_secs() / 60) % 60;
-                info!("total length: {}, Trip would take {}h{}min", zeppelin_path.total_length(), hours, mins);
+                info!(
+                    "total length: {}, Trip would take {}h{}min",
+                    zeppelin_path.total_length(),
+                    hours,
+                    mins
+                );
                 commands.entity(zeppelin).insert(zeppelin_path);
             }
         }
@@ -154,7 +161,7 @@ fn read_selected_tiles(
 }
 
 fn control_speed(
-    time: Res<Time<InGame>>,
+    time: Res<Time<Virtual>>,
     mut query: Query<(&ZeppelinPath, &mut ZeppelinMovementSettings)>,
 ) {
     for (path, mut settings) in &mut query {
@@ -166,7 +173,10 @@ fn control_speed(
     }
 }
 
-fn tick_path(time: Res<Time<InGame>>, mut query: Query<(&mut ZeppelinPath, &ZeppelinMovementSettings)>) {
+fn tick_path(
+    time: Res<Time<Virtual>>,
+    mut query: Query<(&mut ZeppelinPath, &ZeppelinMovementSettings)>,
+) {
     for (mut path, settings) in &mut query {
         let distance = settings.current_speed * time.delta();
         path.distance_traveled += distance.0;
@@ -220,7 +230,7 @@ fn follow_path(
 }
 
 fn brake(
-    time: Res<Time<InGame>>,
+    time: Res<Time<Virtual>>,
     mut query: Query<(&mut Transform, &mut ZeppelinMovementSettings), Without<ZeppelinPath>>,
 ) {
     for (mut transform, mut settings) in &mut query {

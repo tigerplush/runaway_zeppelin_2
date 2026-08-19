@@ -21,8 +21,7 @@ fn setup(mut commands: Commands) {
 
 fn update_pointer(
     primary_window: Single<&Window>,
-    #[cfg(debug_assertions)]
-    mut egui: Single<&mut EguiContext>,
+    #[cfg(debug_assertions)] mut egui: Single<&mut EguiContext>,
     interactions: Query<&Interaction>,
     camera: Single<(&Camera, &GlobalTransform)>,
     pointer: Single<(&mut Pointer, &mut Transform)>,
@@ -65,8 +64,7 @@ pub struct SelectTileMessage(pub AxialCoordinates);
 
 fn on_select_tile(
     _trigger: On<Start<SelectTile>>,
-    #[cfg(debug_assertions)]
-    mut egui: Single<&mut EguiContext>,
+    #[cfg(debug_assertions)] mut egui: Single<&mut EguiContext>,
     pointer: Single<&Pointer>,
     mut writer: MessageWriter<SelectTileMessage>,
 ) {

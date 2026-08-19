@@ -58,7 +58,6 @@ pub fn pan_orbit_controls() -> impl Bundle {
     )
 }
 
-
 #[derive(Component)]
 pub struct TimeControl;
 
@@ -71,7 +70,7 @@ pub enum GameSpeed {
     Pause,
     Speedx1,
     Speedx2,
-    Speedx4
+    Speedx4,
 }
 
 #[derive(Component, Deref)]
@@ -101,7 +100,7 @@ pub fn pointer_control() -> impl Bundle {
         PointerControl,
         actions!(PointerControl[
             (Action::<SelectTile>::new(),bindings![MouseButton::Left]),
-        ])
+        ]),
     )
 }
 

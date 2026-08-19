@@ -33,15 +33,16 @@ impl AxialCoordinates {
     ];
 
     pub const fn new(q: isize, r: isize) -> Self {
-        Self {
-            q,
-            r,
-        }
+        Self { q, r }
     }
 
-    pub fn from_world_coordinates(world_coordinates: WorldCoordinates, size: impl Into<Vec2>) -> Self {
+    pub fn from_world_coordinates(
+        world_coordinates: WorldCoordinates,
+        size: impl Into<Vec2>,
+    ) -> Self {
         let size = size.into();
-        let q = (3_f32.sqrt() / 3.0 * world_coordinates.x - 1.0 / 3.0 * world_coordinates.z) / size.x;
+        let q =
+            (3_f32.sqrt() / 3.0 * world_coordinates.x - 1.0 / 3.0 * world_coordinates.z) / size.x;
         let r = (2.0 / 3.0 * world_coordinates.z) / size.y;
         let s = -q - r;
         let rounded_cube = ICubeCoordinates::round((q, r, s).into());
@@ -125,7 +126,7 @@ impl From<&AxialCoordinates> for ICubeCoordinates {
         Self {
             q: value.q,
             r: value.r,
-            s: -value.q - value.r
+            s: -value.q - value.r,
         }
     }
 }

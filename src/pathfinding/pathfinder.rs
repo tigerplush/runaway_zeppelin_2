@@ -81,7 +81,6 @@ impl Pathfinder {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use crate::{

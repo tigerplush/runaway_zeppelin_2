@@ -16,7 +16,7 @@ fn setup(mut commands: Commands) {
             width: Val::Percent(100.0),
             height: Val::Percent(100.0),
             ..default()
-        }
+        },
     ));
 }
 
