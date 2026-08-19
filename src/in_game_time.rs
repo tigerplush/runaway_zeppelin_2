@@ -7,7 +7,7 @@ use crate::input::*;
 const STARTING_DATE: &str = "1928-10-11 08:00:00";
 const FROM_STRING_FMT: &str = "%Y-%m-%d %H:%M:%S";
 const TO_STRING_FMT: &str = "%A, %_H:%M %_d %B %Y";
-const DEFAULT_TIME_SPEED_FACTOR: u32 = 48;
+const DEFAULT_TIME_SPEED_FACTOR: f32 = 48.0;
 
 /// Represents the in-game time of a singular run.
 #[derive(Reflect, Resource)]
@@ -17,7 +17,6 @@ pub struct InGameTime {
     current_time: NaiveDateTime,
     #[reflect(ignore)]
     starting_time: NaiveDateTime,
-    time_speed_factor: u32,
     #[cfg(debug_assertions)]
     debug_string: String,
     current_speed: GameSpeed,
@@ -26,12 +25,11 @@ pub struct InGameTime {
 
 impl InGameTime {
     /// Creates a new InGameTime from the given date and time.
-    pub fn new(date: NaiveDate, time: NaiveTime, time_speed_factor: u32) -> Self {
+    pub fn new(date: NaiveDate, time: NaiveTime) -> Self {
         let date_time = NaiveDateTime::new(date, time);
         Self {
             current_time: date_time,
             starting_time: date_time,
-            time_speed_factor,
             #[cfg(debug_assertions)]
             debug_string: String::new(),
             current_speed: GameSpeed::Pause,
@@ -52,7 +50,7 @@ impl Default for InGameTime {
     fn default() -> Self {
         let date = NaiveDate::parse_from_str(STARTING_DATE, FROM_STRING_FMT);
         let time = NaiveTime::parse_from_str(STARTING_DATE, FROM_STRING_FMT);
-        Self::new(date.unwrap(), time.unwrap(), DEFAULT_TIME_SPEED_FACTOR)
+        Self::new(date.unwrap(), time.unwrap())
     }
 }
 
@@ -72,8 +70,7 @@ fn tick_in_game_time(time: Res<Time<Virtual>>, mut in_game_time: ResMut<InGameTi
         return;
     }
 
-    let time_speed_factor = in_game_time.time_speed_factor;
-    in_game_time.current_time += time.delta() * time_speed_factor;
+    in_game_time.current_time += time.delta();
 
     if cfg!(debug_assertions) {
         in_game_time.debug_string = format!("{}", *in_game_time);
@@ -122,15 +119,15 @@ fn apply_speed(time: &mut Time<Virtual>, in_game_time: &InGameTime) {
         GameSpeed::Pause => time.pause(),
         GameSpeed::Speedx1 => {
             time.unpause();
-            time.set_relative_speed(1.0)
+            time.set_relative_speed(1.0 * DEFAULT_TIME_SPEED_FACTOR)
         }
         GameSpeed::Speedx2 => {
             time.unpause();
-            time.set_relative_speed(2.0)
+            time.set_relative_speed(2.0 * DEFAULT_TIME_SPEED_FACTOR)
         }
         GameSpeed::Speedx4 => {
             time.unpause();
-            time.set_relative_speed(4.0)
+            time.set_relative_speed(4.0 * DEFAULT_TIME_SPEED_FACTOR)
         }
     };
 }
