@@ -34,6 +34,7 @@ impl Plugin for AppPlugin {
             pointer::plugin,
             states::plugin,
             ui::plugin,
+            utils::plugin,
             zeppelin::plugin,
         ))
         .add_systems(Startup, spawn_light);

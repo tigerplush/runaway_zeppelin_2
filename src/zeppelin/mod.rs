@@ -3,9 +3,7 @@ use std::{f32::consts::PI, time::Duration};
 use bevy::prelude::*;
 
 use crate::{
-    pointer::SelectTileMessage,
-    utils::{hex::*, types::*},
-    zeppelin::zeppelin_path::ZeppelinPath,
+    in_game_time::InGame, pointer::SelectTileMessage, utils::{hex::*, scale::WorldScale, types::*}, zeppelin::zeppelin_path::ZeppelinPath,
 };
 
 mod zeppelin_path;
@@ -61,6 +59,7 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut commands: Commands,
+    scale: Res<WorldScale>,
 ) {
     commands
         .spawn((
@@ -69,10 +68,10 @@ fn setup(
             Visibility::Inherited,
             Transform::default(),
             ZeppelinMovementSettings::new(
-                Velocity(33.0),
-                Acceleration(0.15),
-                Acceleration(0.35),
-                10.0,
+                Velocity(scale.units(33.0)),    // real LZ127 cruise speed, 33 m/s
+                Acceleration(scale.units(0.15)), // real LZ127 acceleration, 0.15 m/s²
+                Acceleration(scale.units(0.35)), // real LZ127 deceleration, 0.35 m/s²
+                scale.units(100.0),               // real LZ127 turning radius, 100m
             ),
         ))
         .with_child((
@@ -155,7 +154,7 @@ fn read_selected_tiles(
 }
 
 fn control_speed(
-    time: Res<Time>,
+    time: Res<Time<InGame>>,
     mut query: Query<(&ZeppelinPath, &mut ZeppelinMovementSettings)>,
 ) {
     for (path, mut settings) in &mut query {
@@ -167,7 +166,7 @@ fn control_speed(
     }
 }
 
-fn tick_path(time: Res<Time>, mut query: Query<(&mut ZeppelinPath, &ZeppelinMovementSettings)>) {
+fn tick_path(time: Res<Time<InGame>>, mut query: Query<(&mut ZeppelinPath, &ZeppelinMovementSettings)>) {
     for (mut path, settings) in &mut query {
         let distance = settings.current_speed * time.delta();
         path.distance_traveled += distance.0;
@@ -221,7 +220,7 @@ fn follow_path(
 }
 
 fn brake(
-    time: Res<Time>,
+    time: Res<Time<InGame>>,
     mut query: Query<(&mut Transform, &mut ZeppelinMovementSettings), Without<ZeppelinPath>>,
 ) {
     for (mut transform, mut settings) in &mut query {
