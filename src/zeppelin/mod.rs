@@ -24,6 +24,15 @@ struct ZeppelinMovementSettings {
     acceleration: Acceleration,
     deceleration: Acceleration,
     maximum_turn_radius: f32,
+    warmup_duration: Duration,
+    /// kg / s
+    fuel_consumption_rate: f32,
+    /// m³ / s
+    gas_consumption_rate: f32,
+    /// in kg
+    fuel_capacity: f32,
+    /// in m³
+    gas_capacity: f32,
 }
 
 impl ZeppelinMovementSettings {
@@ -32,6 +41,9 @@ impl ZeppelinMovementSettings {
         acceleration: Acceleration,
         deceleration: Acceleration,
         maximum_turn_radius: f32,
+        warmup_duration: Duration,
+        fuel_consumption_rate: f32,
+        gas_consumption_rate: f32,
     ) -> Self {
         Self {
             current_speed: Velocity(0.0),
@@ -39,6 +51,11 @@ impl ZeppelinMovementSettings {
             acceleration,
             deceleration,
             maximum_turn_radius,
+            warmup_duration,
+            fuel_consumption_rate,
+            gas_consumption_rate,
+            fuel_capacity: 8_000.0,
+            gas_capacity: 30_000.0,
         }
     }
 
@@ -74,6 +91,9 @@ fn setup(
                 Acceleration(scale.units(0.15)), // real LZ127 acceleration, 0.15 m/s²
                 Acceleration(scale.units(0.35)), // real LZ127 deceleration, 0.35 m/s²
                 scale.units(100.0),              // real LZ127 turning radius, 100m
+                Duration::from_mins(15),
+                250.0 / 3600.0,
+                250.0 / 3600.0,
             ),
         ))
         .with_child((
@@ -87,7 +107,13 @@ fn setup(
 /// resource
 #[derive(Reflect, Resource)]
 #[reflect(Resource)]
-struct PossibleCourse(AxialCoordinates);
+struct PossibleCourse {
+    target: AxialCoordinates,
+    path: ZeppelinPath,
+    duration: Duration,
+    fuel_consumption: f32,
+    gas_consumption: f32,
+}
 
 fn calculate_cruise_time(
     total_length: Length,
@@ -121,40 +147,42 @@ fn calculate_cruise_time(
 fn read_selected_tiles(
     mut reader: MessageReader<SelectTileMessage>,
     possible_course_maybe: Option<Res<PossibleCourse>>,
-    zeppelin: Single<(Entity, &Transform, &ZeppelinMovementSettings), With<ZeppelinWrapper>>,
+    zeppelin: Single<(&Transform, &ZeppelinMovementSettings), With<ZeppelinWrapper>>,
     mut commands: Commands,
 ) {
-    let (zeppelin, transform, settings) = zeppelin.into_inner();
+    let (transform, settings) = zeppelin.into_inner();
     for ev in reader.read() {
         if possible_course_maybe
             .as_ref()
-            .is_some_and(|course| course.0 == ev.0)
+            .is_some_and(|course| course.target == ev.0)
         {
             commands.remove_resource::<PossibleCourse>();
         } else {
-            commands.insert_resource(PossibleCourse(ev.0));
             let target = ev.0.to_world_coordinates(DEFAULT_HEX_SIZE);
-            if let Ok(zeppelin_path) = ZeppelinPath::new(
+            if let Ok(path) = ZeppelinPath::new(
                 transform.translation,
                 transform.forward().as_vec3(),
                 target,
                 settings.maximum_turn_radius,
             ) {
                 let time = calculate_cruise_time(
-                    Length(zeppelin_path.total_length()),
+                    Length(path.total_length()),
                     settings.cruising_speed,
                     settings.acceleration,
                     settings.deceleration,
                 );
-                let hours = time.as_secs() / 3600;
-                let mins = (time.as_secs() / 60) % 60;
-                info!(
-                    "total length: {}, Trip would take {}h{}min",
-                    zeppelin_path.total_length(),
-                    hours,
-                    mins
-                );
-                commands.entity(zeppelin).insert(zeppelin_path);
+                let fuel_duration = time.min(settings.warmup_duration);
+                let gas_duration = time - fuel_duration;
+
+                let fuel_consumption = fuel_duration.as_secs_f32() * settings.fuel_consumption_rate;
+                let gas_consumption = gas_duration.as_secs_f32() * settings.gas_consumption_rate;
+                commands.insert_resource(PossibleCourse {
+                    target: ev.0,
+                    path,
+                    duration: time,
+                    fuel_consumption,
+                    gas_consumption,
+                });
             }
         }
     }
@@ -170,6 +198,7 @@ fn control_speed(
         } else {
             settings.accelerate(&time.delta());
         }
+        settings.fuel_capacity -= settings.fuel_consumption_rate * time.delta_secs();
     }
 }
 
@@ -252,7 +281,7 @@ fn debug_course(
     use crate::utils::hex::DEFAULT_HEX_SIZE;
 
     let start = zeppelin.translation;
-    let end = course.0.to_world_coordinates(DEFAULT_HEX_SIZE);
+    let end = course.target.to_world_coordinates(DEFAULT_HEX_SIZE);
     gizmos.arrow(start, end, ORANGE);
 }
 

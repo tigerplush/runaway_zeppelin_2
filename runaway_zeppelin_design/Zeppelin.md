@@ -33,3 +33,6 @@ If the pilot forces the airship's elevators hard up to tilt the nose upward (10�
 LZ 127 ran on two fuels: Blaugas (of which 30.000m³ were loaded) and regular gas.
 It's reach was 12.000km.
 At 115km/h cruising speed, it burned through 250kgs of fuel per hour, 50kgs per Maybach VL2 Engine.
+
+## Engine Warmup
+The warm-up duration for the historical Maybach VL II (VL-2) V12 airship engine is roughly 15 to 20 minutes under standard operating conditions.Because it is a massive, water-cooled, 33.3-liter reciprocating engine built in the late 1920s, it requires a significantly longer warm-up protocol compared to modern machinery.Warm-Up Protocol and Technical FactorsTarget Oil Temperature: The engine cannot be safely throttled or brought to flight power until the oil temperature reaches its minimum operating threshold (typically around 30°C to 35°C).Thermal Expansion: Large vintage aluminum and steel components require gradual, uniform heating to expand evenly. Rushing the process risks piston seizing or cylinder head damage.Pre-heating in Cold Weather: In freezing temperatures, the warm-up duration extends significantly. During its operational era on airships like the Graf Zeppelin and the USS Macon, crews frequently used external ground-based heaters to pre-warm the engine coolant and oil before even attempting a start.
