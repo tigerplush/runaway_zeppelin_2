@@ -10,9 +10,12 @@ use crate::{
 
 mod zeppelin_path;
 
+/// Represents the base of the Zeppelin. This is the entity that is moved and
+/// rotated.
 #[derive(Component)]
 struct ZeppelinWrapper;
 
+/// Represents zeppelin movement settings.
 #[derive(Component, Reflect)]
 #[reflect(Component)]
 struct ZeppelinMovementSettings {
@@ -79,11 +82,41 @@ fn setup(
         ));
 }
 
+/// Represents a possible course. There will only ever be one, so this is a
+/// resource
 #[derive(Reflect, Resource)]
 #[reflect(Resource)]
 struct PossibleCourse(AxialCoordinates);
 
-/// listens for the [`SelectedTileMessage`] and inserts a possible course with the given coordinates
+fn calculate_cruise_time(
+    total_length: Length,
+    cruising_velocity: Velocity,
+    acceleration: Acceleration,
+    deceleration: Acceleration,
+) -> Duration {
+    let mut acceleration_distance = cruising_velocity.squared() / (2.0 * acceleration);
+    let mut deceleration_distance = cruising_velocity.squared() / (2.0 * deceleration);
+
+    let mut peak_velocity = cruising_velocity;
+    if acceleration_distance + deceleration_distance > total_length {
+        let nom = 2.0 * acceleration.0 * deceleration.0 * total_length.0;
+        let denom = acceleration + deceleration;
+        let peak = (nom / denom.0).sqrt();
+        peak_velocity = Velocity(peak);
+        acceleration_distance = peak_velocity.squared() / (2.0 * acceleration);
+        deceleration_distance = peak_velocity.squared() / (2.0 * deceleration);
+    }
+
+    let cruise_length =
+        (total_length - acceleration_distance - deceleration_distance).max(Length(0.0));
+    let accel_time = peak_velocity / acceleration;
+    let decel_time = peak_velocity / deceleration;
+    let cruise_time = cruise_length / cruising_velocity;
+    accel_time + cruise_time + decel_time
+}
+
+/// listens for the [`SelectedTileMessage`] and inserts a possible course with
+/// the given coordinates.
 fn read_selected_tiles(
     mut reader: MessageReader<SelectTileMessage>,
     possible_course_maybe: Option<Res<PossibleCourse>>,
@@ -106,6 +139,15 @@ fn read_selected_tiles(
                 target,
                 settings.maximum_turn_radius,
             ) {
+                let time = calculate_cruise_time(
+                    Length(zeppelin_path.total_length()),
+                    settings.cruising_speed,
+                    settings.acceleration,
+                    settings.deceleration,
+                );
+                let hours = time.as_secs() / 3600;
+                let mins = (time.as_secs() / 60) % 60;
+                info!("total length: {}, Trip would take {}h{}min", zeppelin_path.total_length(), hours, mins);
                 commands.entity(zeppelin).insert(zeppelin_path);
             }
         }
@@ -255,4 +297,36 @@ pub fn plugin(app: &mut App) {
             debug_zeppelin_forward,
         ),
     );
+}
+
+#[cfg(test)]
+mod test {
+    use std::time::Duration;
+
+    use crate::{
+        utils::types::{Acceleration, Length, Velocity},
+        zeppelin::calculate_cruise_time,
+    };
+
+    #[test]
+    fn test_long_travel_time() {
+        let time = calculate_cruise_time(
+            Length(100.0),
+            Velocity(5.0),
+            Acceleration(2.0),
+            Acceleration(2.0),
+        );
+        assert_eq!(time, Duration::from_secs_f32(22.5));
+    }
+
+    #[test]
+    fn test_short_travel_time() {
+        let time = calculate_cruise_time(
+            Length(10.0),
+            Velocity(5.0),
+            Acceleration(2.0),
+            Acceleration(2.0),
+        );
+        assert!((time.as_secs_f32() - 20f32.sqrt()).abs() < f32::EPSILON);
+    }
 }
