@@ -8,6 +8,7 @@ mod map_generation;
 mod pathfinding;
 mod pointer;
 mod states;
+mod ui;
 mod utils;
 mod zeppelin;
 
@@ -32,6 +33,7 @@ impl Plugin for AppPlugin {
             pathfinding::plugin,
             pointer::plugin,
             states::plugin,
+            ui::plugin,
             zeppelin::plugin,
         ))
         .add_systems(Startup, spawn_light);
