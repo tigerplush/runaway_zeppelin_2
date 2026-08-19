@@ -9,7 +9,10 @@ use rand::RngExt;
 
 use crate::{
     map_generation::poi::Poi,
-    utils::hex::{AxialCoordinates, DEFAULT_HEX_SIZE},
+    utils::{
+        hex::{AxialCoordinates, DEFAULT_HEX_SIZE},
+        scale::WorldScale,
+    },
     zeppelin::ReachedCoordinatesMessage,
 };
 
@@ -147,12 +150,18 @@ fn is_valid(
 }
 
 fn spawn_map(
+    scale: Res<WorldScale>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut rng: Single<&mut ChaCha8Rng, With<GlobalRng>>,
     mut commands: Commands,
 ) {
-    let p = sample_poisson_disc(5.0, Vec2::new(20.0, 20.0), 30, &mut rng);
+    let p = sample_poisson_disc(
+        scale.units(25_000f32),
+        Vec2::new(scale.units(50_000f32), scale.units(50_000f32)),
+        30,
+        &mut rng,
+    );
 
     for point in p {
         let translation = AxialCoordinates::from_world_coordinates(
