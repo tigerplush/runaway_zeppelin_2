@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 use bevy_enhanced_input::action::events::Start;
+#[cfg(debug_assertions)]
+use bevy_inspector_egui::bevy_egui::EguiContext;
 
 use crate::{
     input::*,
@@ -19,9 +21,21 @@ fn setup(mut commands: Commands) {
 
 fn update_pointer(
     primary_window: Single<&Window>,
+    #[cfg(debug_assertions)]
+    mut egui: Single<&mut EguiContext>,
+    interactions: Query<&Interaction>,
     camera: Single<(&Camera, &GlobalTransform)>,
     pointer: Single<(&mut Pointer, &mut Transform)>,
 ) {
+    if !interactions.iter().all(|f| *f == Interaction::None) {
+        return;
+    };
+
+    #[cfg(debug_assertions)]
+    if egui.get_mut().egui_wants_pointer_input() || egui.get_mut().egui_is_using_pointer() {
+        return;
+    }
+
     let (mut pointer, mut transform) = pointer.into_inner();
     pointer.previous_position = pointer.current_position;
     let Some(cursor_position) = primary_window.cursor_position() else {
@@ -51,9 +65,16 @@ pub struct SelectTileMessage(pub AxialCoordinates);
 
 fn on_select_tile(
     _trigger: On<Start<SelectTile>>,
+    #[cfg(debug_assertions)]
+    mut egui: Single<&mut EguiContext>,
     pointer: Single<&Pointer>,
     mut writer: MessageWriter<SelectTileMessage>,
 ) {
+    #[cfg(debug_assertions)]
+    if egui.get_mut().egui_wants_pointer_input() {
+        return;
+    }
+
     if let Some(current_position) = pointer.current_position {
         writer.write(SelectTileMessage(current_position));
     }
