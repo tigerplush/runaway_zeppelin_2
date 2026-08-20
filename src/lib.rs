@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_rand::{plugin::EntropyPlugin, prelude::ChaCha8Rng};
 
+mod asset_tracking;
 mod camera;
 mod in_game_time;
 mod input;
@@ -27,6 +28,7 @@ impl Plugin for AppPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(EntropyPlugin::<ChaCha8Rng>::default())
             .add_plugins((
+                asset_tracking::plugin,
                 camera::plugin,
                 in_game_time::plugin,
                 input::plugin,

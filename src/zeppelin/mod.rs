@@ -4,6 +4,7 @@ use bevy::prelude::*;
 
 use crate::{
     pointer::SelectTileMessage,
+    ui::{self, AttachToUiSlot},
     utils::{hex::*, scale::WorldScale, types::*},
     zeppelin::zeppelin_path::ZeppelinPath,
 };
@@ -113,6 +114,40 @@ struct PossibleCourse {
     duration: Duration,
     fuel_consumption: f32,
     gas_consumption: f32,
+}
+
+#[derive(Component)]
+struct SetCourseButton;
+
+fn on_insert_course(
+    _trigger: On<Insert, PossibleCourse>,
+    possible_course: Res<PossibleCourse>,
+    previous_buttons: Query<Entity, With<SetCourseButton>>,
+    mut commands: Commands,
+) {
+    info!("course inserted");
+    let hours = possible_course.duration.as_secs() / 3600;
+    let mins = (possible_course.duration.as_secs()) / 60 % 60;
+    let content = format!(
+        "Fuel: {:.1}kg | Gas: {:.1}m³ | Time: {}h{}min",
+        possible_course.fuel_consumption, possible_course.gas_consumption, hours, mins
+    );
+    commands.spawn((
+        ui::primary_button("Set Course", Some(content), AttachToUiSlot::Action),
+        SetCourseButton,
+    ));
+
+    for entity in &previous_buttons {
+        commands.entity(entity).despawn();
+    }
+}
+
+fn on_remove_course(
+    _trigger: On<Remove, PossibleCourse>,
+    previous_button: Single<Entity, With<SetCourseButton>>,
+    mut commands: Commands,
+) {
+    commands.entity(previous_button.entity()).despawn();
 }
 
 fn calculate_cruise_time(
@@ -324,7 +359,9 @@ pub fn plugin(app: &mut App) {
                 brake,
                 (control_speed, tick_path, follow_path).chain(),
             ),
-        );
+        )
+        .add_observer(on_insert_course)
+        .add_observer(on_remove_course);
 
     #[cfg(debug_assertions)]
     app.add_systems(
