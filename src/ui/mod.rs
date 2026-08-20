@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::asset_tracking::LoadResource;
+use crate::{asset_tracking::LoadResource, states::AppStates};
 
 #[derive(Component)]
 pub struct UiRoot;
@@ -56,13 +56,27 @@ impl FromWorld for ButtonHandles {
     }
 }
 
+#[derive(Asset, Clone, Reflect, Resource)]
+struct StatusBarHandles {
+    background_image: Handle<Image>,
+}
+
+impl FromWorld for StatusBarHandles {
+    fn from_world(world: &mut World) -> Self {
+        let asset_server = world.resource::<AssetServer>();
+        Self {
+            background_image: asset_server.load("ui/graphics/header_frame.png"),
+        }
+    }
+}
+
 #[derive(Component, PartialEq)]
 enum UiSlot {
     StatusBar,
     Action,
 }
 
-fn setup(mut commands: Commands) {
+fn setup(status_bar_handles: Res<StatusBarHandles>, mut commands: Commands) {
     commands.spawn((
         UiRoot,
         Name::from("UiRoot"),
@@ -80,21 +94,25 @@ fn setup(mut commands: Commands) {
                 Node {
                     width: Val::Percent(100.0),
                     ..default()
+                },
+                ImageNode {
+                    image: status_bar_handles.background_image.clone(),
+                    image_mode: NodeImageMode::Stretch,
+                    ..default()
                 }
             ),
             (
                 UiSlot::Action,
-                Name::from("StatusBar"),
-                Node {
-                    ..default()
-                }
+                Name::from("ActionBar"),
+                Node { ..default() }
             )
-        ]
+        ],
     ));
 }
 
 #[derive(Component)]
 pub enum AttachToUiSlot {
+    StatusBar,
     Action,
 }
 
@@ -125,7 +143,10 @@ pub fn primary_button(
         slot,
         children![(
             Node {
-                padding: UiRect::axes(Val::Px(BUTTON_SLICE_HORIZONTAL), Val::Px(BUTTON_SLICE_VERTICAL)),
+                padding: UiRect::axes(
+                    Val::Px(BUTTON_SLICE_HORIZONTAL),
+                    Val::Px(BUTTON_SLICE_VERTICAL)
+                ),
                 flex_direction: FlexDirection::Column,
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
@@ -140,6 +161,16 @@ pub fn primary_button(
                 )),),
             )),
         )],
+    )
+}
+
+pub fn label(label: impl Into<String>, slot: AttachToUiSlot) -> impl Bundle {
+    let label= label.into();
+    (
+        Name::from(format!("{} Label", label)),
+        Text(label),
+        NeedsPlacement,
+        slot,
     )
 }
 
@@ -165,14 +196,18 @@ fn on_add_needs_placement(
     };
 
     let parent_maybe = match attach_to {
-        AttachToUiSlot::Action => ui_slots.iter().find(|&(_, slot)| &UiSlot::Action == slot)
+        AttachToUiSlot::Action => ui_slots.iter().find(|&(_, slot)| &UiSlot::Action == slot),
+        AttachToUiSlot::StatusBar => ui_slots.iter().find(|&(_, slot)| &UiSlot::StatusBar == slot),
     };
 
     let Some((parent, _)) = parent_maybe else {
         return;
     };
 
-    commands.entity(trigger.entity).insert(ChildOf(parent)).remove::<NeedsPlacement>();
+    commands
+        .entity(trigger.entity)
+        .insert(ChildOf(parent))
+        .remove::<NeedsPlacement>();
 }
 
 fn on_add_text(
@@ -199,7 +234,8 @@ fn on_add_text(
 pub fn plugin(app: &mut App) {
     app.load_resource::<FontHandles>()
         .load_resource::<ButtonHandles>()
-        .add_systems(Startup, setup)
+        .load_resource::<StatusBarHandles>()
+        .add_systems(OnEnter(AppStates::InGame), setup)
         .add_observer(on_add_needs_styling)
         .add_observer(on_add_needs_placement)
         .add_observer(on_add_text);

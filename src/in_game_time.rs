@@ -2,7 +2,11 @@ use bevy::prelude::*;
 use bevy_enhanced_input::prelude::*;
 use chrono::*;
 
-use crate::input::*;
+use crate::{
+    input::*,
+    states::AppStates,
+    ui::{self, AttachToUiSlot},
+};
 
 const STARTING_DATE: &str = "1928-10-11 08:00:00";
 const FROM_STRING_FMT: &str = "%Y-%m-%d %H:%M:%S";
@@ -77,14 +81,23 @@ fn tick_in_game_time(time: Res<Time<Virtual>>, mut in_game_time: ResMut<InGameTi
     }
 }
 
-fn spawn_controls(
-    mut time: ResMut<Time<Virtual>>,
-    in_game_time: Res<InGameTime>,
-    mut commands: Commands,
-) {
-    commands.spawn((Name::from("Time Controls"), time_control()));
+#[derive(Component)]
+struct InGameTimeLabel;
 
+fn setup(in_game_time: Res<InGameTime>, mut time: ResMut<Time<Virtual>>, mut commands: Commands) {
+    commands.spawn((Name::from("Time Controls"), time_control()));
+    commands.spawn((
+        ui::label(format!("{}", *in_game_time), AttachToUiSlot::StatusBar),
+        InGameTimeLabel,
+    ));
     apply_speed(&mut time, &in_game_time);
+}
+
+fn update_label(
+    in_game_time: Res<InGameTime>,
+    mut label: Single<&mut Text, With<InGameTimeLabel>>,
+) {
+    label.0 = format!("{}", *in_game_time);
 }
 
 fn on_set_speed(
@@ -135,10 +148,10 @@ fn apply_speed(time: &mut Time<Virtual>, in_game_time: &InGameTime) {
 pub fn plugin(app: &mut App) {
     app.register_type::<InGameTime>()
         .init_resource::<InGameTime>()
-        .add_systems(Startup, spawn_controls)
+        .add_systems(OnEnter(AppStates::InGame), setup)
         .add_systems(
             Update,
-            tick_in_game_time.run_if(resource_exists::<InGameTime>),
+            (tick_in_game_time, update_label).run_if(resource_exists::<InGameTime>),
         )
         .add_observer(on_set_speed.run_if(resource_exists::<InGameTime>));
 }
