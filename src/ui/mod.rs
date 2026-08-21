@@ -75,6 +75,14 @@ struct ResourceIconHandles {
     fuel: Handle<Image>,
 }
 
+impl ResourceIconHandles {
+    fn get(&self, slot: ResourceSlot) -> Handle<Image> {
+        match slot {
+            ResourceSlot::Fuel => self.fuel.clone(),
+        }
+    }
+}
+
 impl FromWorld for ResourceIconHandles {
     fn from_world(world: &mut World) -> Self {
         let asset_server = world.resource::<AssetServer>();
@@ -216,6 +224,55 @@ pub fn label(label: impl Into<String>, slot: AttachToUiSlot) -> impl Bundle {
     )
 }
 
+#[derive(Component)]
+struct NeedsIcon(ResourceSlot);
+
+/// A row with this resource's icon (looked up and attached by `ui` itself -
+/// callers never need to know which handle or asset path an icon comes
+/// from). Attach your own content (e.g. `Text` + a marker + `Tooltip`) as a
+/// child of the returned entity - `ui` only owns the icon and row layout.
+pub fn resource_label(slot: ResourceSlot) -> impl Bundle {
+    (
+        Name::from("Resource Label"),
+        Node {
+            flex_direction: FlexDirection::Row,
+            align_items: AlignItems::Center,
+            column_gap: Val::Px(4.0),
+            ..default()
+        },
+        NeedsPlacement,
+        NeedsIcon(slot),
+        AttachToUiSlot::ResourceBar(slot),
+    )
+}
+
+fn on_add_needs_icon(
+    trigger: On<Add, NeedsIcon>,
+    query: Query<&NeedsIcon>,
+    icons: Res<ResourceIconHandles>,
+    mut commands: Commands,
+) {
+    let Ok(needs_icon) = query.get(trigger.entity) else {
+        return;
+    };
+
+    commands
+        .entity(trigger.entity)
+        .with_child((
+            Name::from("Icon"),
+            ImageNode::new(icons.get(needs_icon.0)),
+            Node {
+                width: Val::Px(20.0),
+                height: Val::Px(20.0),
+                ..default()
+            },
+            // Let hover (and thus any Tooltip on the parent row) pass through
+            // to the row itself instead of stopping on this child.
+            Pickable::IGNORE,
+        ))
+        .remove::<NeedsIcon>();
+}
+
 fn on_add_needs_styling(
     trigger: On<Add, NeedsStyling>,
     button_handles: Res<ButtonHandles>,
@@ -279,12 +336,14 @@ fn on_add_text(
 }
 
 pub fn plugin(app: &mut App) {
-    app.load_resource::<FontHandles>()
+    app.add_plugins(pyri_tooltip::TooltipPlugin::default())
+        .load_resource::<FontHandles>()
         .load_resource::<ButtonHandles>()
         .load_resource::<StatusBarHandles>()
         .load_resource::<ResourceIconHandles>()
         .add_systems(OnEnter(AppStates::InGame), setup)
         .add_observer(on_add_needs_styling)
         .add_observer(on_add_needs_placement)
+        .add_observer(on_add_needs_icon)
         .add_observer(on_add_text);
 }
