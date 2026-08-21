@@ -3,7 +3,9 @@ use std::{f32::consts::PI, time::Duration};
 use bevy::prelude::*;
 
 use crate::{
-    pointer::SelectTileMessage, utils::{hex::*, scale::WorldScale, types::*}, zeppelin::{possible_course::PossibleCourse, zeppelin_path::ZeppelinPath},
+    pointer::SelectTileMessage,
+    utils::{hex::*, scale::WorldScale, types::*},
+    zeppelin::{possible_course::PossibleCourse, zeppelin_path::ZeppelinPath},
 };
 
 mod possible_course;
@@ -23,11 +25,6 @@ struct ZeppelinMovementSettings {
     acceleration: Acceleration,
     deceleration: Acceleration,
     maximum_turn_radius: f32,
-    warmup_duration: Duration,
-    /// kg / s
-    fuel_consumption_rate: f32,
-    /// m³ / s
-    gas_consumption_rate: f32,
     /// in kg
     fuel_capacity: f32,
     /// in m³
@@ -40,9 +37,6 @@ impl ZeppelinMovementSettings {
         acceleration: Acceleration,
         deceleration: Acceleration,
         maximum_turn_radius: f32,
-        warmup_duration: Duration,
-        fuel_consumption_rate: f32,
-        gas_consumption_rate: f32,
     ) -> Self {
         Self {
             current_speed: Velocity(0.0),
@@ -50,9 +44,6 @@ impl ZeppelinMovementSettings {
             acceleration,
             deceleration,
             maximum_turn_radius,
-            warmup_duration,
-            fuel_consumption_rate,
-            gas_consumption_rate,
             fuel_capacity: 8_000.0,
             gas_capacity: 30_000.0,
         }
@@ -73,6 +64,54 @@ impl ZeppelinMovementSettings {
     }
 }
 
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+struct Engine {
+    current_temperature: Temperature,
+    operating_temperature: Temperature,
+    warmup_duration: Duration,
+    cooldown_duration: Duration,
+    /// kg / s
+    fuel_consumption_rate: f32,
+    /// m³ / s
+    gas_consumption_rate: f32,
+}
+
+impl Engine {
+    fn heat_up(&mut self, delta: Duration) {
+        let warmup_rate =
+            (self.operating_temperature - Temperature::AMBIENT_TEMPERATURE) / self.warmup_duration;
+        self.current_temperature += warmup_rate * delta;
+        self.current_temperature = self
+            .current_temperature
+            .clamp(Temperature::AMBIENT_TEMPERATURE, self.operating_temperature);
+    }
+    fn cool_down(&mut self, delta: Duration) {
+        let cooldown_rate = (Temperature::AMBIENT_TEMPERATURE - self.operating_temperature)
+            / self.cooldown_duration;
+        self.current_temperature += cooldown_rate * delta;
+        self.current_temperature = self
+            .current_temperature
+            .clamp(Temperature::AMBIENT_TEMPERATURE, self.operating_temperature);
+    }
+
+    fn fuel_consumption_rate(&self) -> f32 {
+        if self.current_temperature.as_celsius() > 69.9 {
+            0.0
+        } else {
+            self.fuel_consumption_rate
+        }
+    }
+
+    fn gas_consumption_rate(&self) -> f32 {
+        if self.current_temperature.as_celsius() < 69.9 {
+            0.0
+        } else {
+            self.gas_consumption_rate
+        }
+    }
+}
+
 fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -90,10 +129,15 @@ fn setup(
                 Acceleration(scale.units(0.15)), // real LZ127 acceleration, 0.15 m/s²
                 Acceleration(scale.units(0.35)), // real LZ127 deceleration, 0.35 m/s²
                 scale.units(100.0),              // real LZ127 turning radius, 100m
-                Duration::from_mins(15),
-                250.0 / 3600.0,
-                250.0 / 3600.0,
             ),
+            Engine {
+                current_temperature: Temperature::from_celsius(20.0),
+                operating_temperature: Temperature::from_celsius(70.0),
+                warmup_duration: Duration::from_mins(15),
+                cooldown_duration: Duration::from_hours(8),
+                fuel_consumption_rate: 250.0 / 3600.0,
+                gas_consumption_rate: 250.0 / 3600.0,
+            },
         ))
         .with_child((
             Mesh3d(meshes.add(Capsule3d::default())),
@@ -134,10 +178,10 @@ fn calculate_cruise_time(
 fn read_selected_tiles(
     mut reader: MessageReader<SelectTileMessage>,
     possible_course_maybe: Option<Res<PossibleCourse>>,
-    zeppelin: Single<(&Transform, &ZeppelinMovementSettings), With<ZeppelinWrapper>>,
+    zeppelin: Single<(&Transform, &ZeppelinMovementSettings, &Engine), With<ZeppelinWrapper>>,
     mut commands: Commands,
 ) {
-    let (transform, settings) = zeppelin.into_inner();
+    let (transform, settings, engine) = zeppelin.into_inner();
     for ev in reader.read() {
         if possible_course_maybe
             .as_ref()
@@ -158,11 +202,11 @@ fn read_selected_tiles(
                     settings.acceleration,
                     settings.deceleration,
                 );
-                let fuel_duration = time.min(settings.warmup_duration);
+                let fuel_duration = time.min(engine.warmup_duration);
                 let gas_duration = time - fuel_duration;
 
-                let fuel_consumption = fuel_duration.as_secs_f32() * settings.fuel_consumption_rate;
-                let gas_consumption = gas_duration.as_secs_f32() * settings.gas_consumption_rate;
+                let fuel_consumption = fuel_duration.as_secs_f32() * engine.fuel_consumption_rate;
+                let gas_consumption = gas_duration.as_secs_f32() * engine.gas_consumption_rate;
                 commands.insert_resource(PossibleCourse {
                     target: ev.0,
                     path,
@@ -175,17 +219,28 @@ fn read_selected_tiles(
     }
 }
 
+fn tick_engine(time: Res<Time<Virtual>>, engine: Single<(&mut Engine, Option<&ZeppelinPath>)>) {
+    let (mut engine, path) = engine.into_inner();
+
+    if path.is_some() {
+        engine.heat_up(time.delta());
+    } else {
+        engine.cool_down(time.delta());
+    }
+}
+
 fn control_speed(
     time: Res<Time<Virtual>>,
-    mut query: Query<(&ZeppelinPath, &mut ZeppelinMovementSettings)>,
+    mut query: Query<(&ZeppelinPath, &mut ZeppelinMovementSettings, &Engine)>,
 ) {
-    for (path, mut settings) in &mut query {
+    for (path, mut settings, engine) in &mut query {
         if path.remaining_length() <= settings.braking_distance().0 {
             settings.decelerate(&time.delta());
         } else {
             settings.accelerate(&time.delta());
         }
-        settings.fuel_capacity -= settings.fuel_consumption_rate * time.delta_secs();
+        settings.fuel_capacity -= engine.fuel_consumption_rate() * time.delta_secs();
+        settings.gas_capacity -= engine.gas_consumption_rate() * time.delta_secs();
     }
 }
 
@@ -257,7 +312,6 @@ fn brake(
     }
 }
 
-
 #[cfg(debug_assertions)]
 fn debug_zeppelin_path(mut gizmos: Gizmos, zeppelin: Single<&ZeppelinPath>) {
     use bevy::color::palettes::css::PURPLE;
@@ -287,7 +341,8 @@ fn debug_zeppelin_forward(mut gizmos: Gizmos, zeppelin: Single<&Transform, With<
 }
 
 pub fn plugin(app: &mut App) {
-    app.add_plugins(possible_course::plugin)
+    app.register_type::<Engine>()
+        .add_plugins(possible_course::plugin)
         .add_message::<ReachedCoordinatesMessage>()
         .add_systems(Startup, setup)
         .add_systems(
@@ -295,18 +350,13 @@ pub fn plugin(app: &mut App) {
             (
                 read_selected_tiles,
                 brake,
+                tick_engine,
                 (control_speed, tick_path, follow_path).chain(),
             ),
         );
 
     #[cfg(debug_assertions)]
-    app.add_systems(
-        Update,
-        (
-            debug_zeppelin_path,
-            debug_zeppelin_forward,
-        ),
-    );
+    app.add_systems(Update, (debug_zeppelin_path, debug_zeppelin_forward));
 }
 
 #[cfg(test)]

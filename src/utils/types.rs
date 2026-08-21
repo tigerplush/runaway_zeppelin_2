@@ -7,7 +7,54 @@ use bevy::{math::FloatPow, prelude::*};
 
 /// Temperature in °K
 #[derive(Clone, Copy, Debug, Reflect)]
-pub struct Temperature(f32);
+pub struct Temperature(pub f32);
+
+impl Temperature {
+    const KELVIN_TO_CELSIUS: f32 = 273.15;
+    pub const AMBIENT_TEMPERATURE: Temperature = Temperature::from_celsius(20.0);
+
+    pub const fn from_celsius(celsius: f32) -> Self {
+        Self(celsius - Self::KELVIN_TO_CELSIUS)
+    }
+
+    pub fn as_celsius(&self) -> f32 {
+        self.0 + Self::KELVIN_TO_CELSIUS
+    }
+
+    pub fn clamp(&self, min: Temperature, max: Temperature) -> Temperature {
+        Temperature(self.0.clamp(min.0, max.0))
+    }
+}
+
+impl AddAssign<Temperature> for Temperature {
+    fn add_assign(&mut self, rhs: Temperature) {
+        self.0 += rhs.0
+    }
+}
+
+impl Sub<Temperature> for Temperature {
+    type Output = Self;
+    fn sub(self, rhs: Temperature) -> Self::Output {
+        Temperature(self.0 - rhs.0)
+    }
+}
+
+impl Div<Duration> for Temperature {
+    type Output = HeatingRate;
+    fn div(self, rhs: Duration) -> Self::Output {
+        HeatingRate(self.0 / rhs.as_secs_f32())
+    }
+}
+
+/// Heating rate in °C/s
+#[derive(Clone, Copy, Debug, Reflect)]
+pub struct HeatingRate(f32);
+impl Mul<Duration> for HeatingRate {
+    type Output = Temperature;
+    fn mul(self, rhs: Duration) -> Self::Output {
+        Temperature(self.0 * rhs.as_secs_f32())
+    }
+}
 
 /// Length in m
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Reflect)]
