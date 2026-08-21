@@ -22,14 +22,9 @@ fn setup(mut commands: Commands) {
 fn update_pointer(
     primary_window: Single<&Window>,
     #[cfg(debug_assertions)] mut egui: Single<&mut EguiContext>,
-    interactions: Query<&Interaction>,
     camera: Single<(&Camera, &GlobalTransform)>,
     pointer: Single<(&mut Pointer, &mut Transform)>,
 ) {
-    if !interactions.iter().all(|f| *f == Interaction::None) {
-        return;
-    };
-
     #[cfg(debug_assertions)]
     if egui.get_mut().egui_wants_pointer_input() || egui.get_mut().egui_is_using_pointer() {
         return;
@@ -65,9 +60,14 @@ pub struct SelectTileMessage(pub AxialCoordinates);
 fn on_select_tile(
     _trigger: On<Start<SelectTile>>,
     #[cfg(debug_assertions)] mut egui: Single<&mut EguiContext>,
+    interactions: Query<&Interaction>,
     pointer: Single<&Pointer>,
     mut writer: MessageWriter<SelectTileMessage>,
 ) {
+    if !interactions.iter().all(|f| *f == Interaction::None) {
+        return;
+    };
+
     #[cfg(debug_assertions)]
     if egui.get_mut().egui_wants_pointer_input() {
         return;
