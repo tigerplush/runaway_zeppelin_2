@@ -22,6 +22,38 @@ impl FromWorld for FontHandles {
 }
 
 #[derive(Asset, Clone, Reflect, Resource)]
+pub struct PopupWindowHandles {
+    popup_window_background: Handle<Image>,
+    slicer: TextureSlicer,
+}
+
+impl PopupWindowHandles {
+    fn image_node(&self) -> ImageNode {
+        ImageNode {
+            image: self.popup_window_background.clone(),
+            image_mode: NodeImageMode::Sliced(self.slicer.clone()),
+            ..default()
+        }
+    }
+}
+
+impl FromWorld for PopupWindowHandles {
+    fn from_world(world: &mut World) -> Self {
+        let asset_server = world.resource::<AssetServer>();
+        let slicer = TextureSlicer {
+            border: BorderRect::all(10.0),
+            center_scale_mode: SliceScaleMode::Stretch,
+            sides_scale_mode: SliceScaleMode::Stretch,
+            max_corner_scale: 1.0,
+        };
+        Self {
+            popup_window_background: asset_server.load("ui/graphics/btn_middle_2.png"),
+            slicer,
+        }
+    }
+}
+
+#[derive(Asset, Clone, Reflect, Resource)]
 pub struct ButtonHandles {
     button_background: Handle<Image>,
     slicer: TextureSlicer,
