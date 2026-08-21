@@ -165,7 +165,7 @@ pub fn primary_button(
 }
 
 pub fn label(label: impl Into<String>, slot: AttachToUiSlot) -> impl Bundle {
-    let label= label.into();
+    let label = label.into();
     (
         Name::from(format!("{} Label", label)),
         Text(label),
@@ -197,7 +197,9 @@ fn on_add_needs_placement(
 
     let parent_maybe = match attach_to {
         AttachToUiSlot::Action => ui_slots.iter().find(|&(_, slot)| &UiSlot::Action == slot),
-        AttachToUiSlot::StatusBar => ui_slots.iter().find(|&(_, slot)| &UiSlot::StatusBar == slot),
+        AttachToUiSlot::StatusBar => ui_slots
+            .iter()
+            .find(|&(_, slot)| &UiSlot::StatusBar == slot),
     };
 
     let Some((parent, _)) = parent_maybe else {
