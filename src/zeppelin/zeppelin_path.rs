@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-#[derive(Component, Reflect)]
+#[derive(Clone, Component, Copy, Reflect)]
 #[reflect(Component)]
 pub(super) struct ZeppelinPath {
     start: Vec3,

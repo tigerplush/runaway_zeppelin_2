@@ -3,12 +3,10 @@ use std::{f32::consts::PI, time::Duration};
 use bevy::prelude::*;
 
 use crate::{
-    pointer::SelectTileMessage,
-    ui::{self, AttachToUiSlot},
-    utils::{hex::*, scale::WorldScale, types::*},
-    zeppelin::zeppelin_path::ZeppelinPath,
+    pointer::SelectTileMessage, utils::{hex::*, scale::WorldScale, types::*}, zeppelin::{possible_course::PossibleCourse, zeppelin_path::ZeppelinPath},
 };
 
+mod possible_course;
 mod zeppelin_path;
 
 /// Represents the base of the Zeppelin. This is the entity that is moved and
@@ -102,52 +100,6 @@ fn setup(
             MeshMaterial3d(materials.add(StandardMaterial::default())),
             Transform::from_xyz(0.0, 10.0, 0.0).with_rotation(Quat::from_rotation_x(-PI / 2.0)),
         ));
-}
-
-/// Represents a possible course. There will only ever be one, so this is a
-/// resource
-#[derive(Reflect, Resource)]
-#[reflect(Resource)]
-struct PossibleCourse {
-    target: AxialCoordinates,
-    path: ZeppelinPath,
-    duration: Duration,
-    fuel_consumption: f32,
-    gas_consumption: f32,
-}
-
-#[derive(Component)]
-struct SetCourseButton;
-
-fn on_insert_course(
-    _trigger: On<Insert, PossibleCourse>,
-    possible_course: Res<PossibleCourse>,
-    previous_buttons: Query<Entity, With<SetCourseButton>>,
-    mut commands: Commands,
-) {
-    info!("course inserted");
-    let hours = possible_course.duration.as_secs() / 3600;
-    let mins = (possible_course.duration.as_secs()) / 60 % 60;
-    let content = format!(
-        "Fuel: {:.1}kg | Gas: {:.1}m³ | Time: {}h{}min",
-        possible_course.fuel_consumption, possible_course.gas_consumption, hours, mins
-    );
-    commands.spawn((
-        ui::primary_button("Set Course", Some(content), AttachToUiSlot::Action),
-        SetCourseButton,
-    ));
-
-    for entity in &previous_buttons {
-        commands.entity(entity).despawn();
-    }
-}
-
-fn on_remove_course(
-    _trigger: On<Remove, PossibleCourse>,
-    previous_button: Single<Entity, With<SetCourseButton>>,
-    mut commands: Commands,
-) {
-    commands.entity(previous_button.entity()).despawn();
 }
 
 fn calculate_cruise_time(
@@ -305,20 +257,6 @@ fn brake(
     }
 }
 
-#[cfg(debug_assertions)]
-fn debug_course(
-    mut gizmos: Gizmos,
-    course: Res<PossibleCourse>,
-    zeppelin: Single<&Transform, With<ZeppelinWrapper>>,
-) {
-    use bevy::color::palettes::css::ORANGE;
-
-    use crate::utils::hex::DEFAULT_HEX_SIZE;
-
-    let start = zeppelin.translation;
-    let end = course.target.to_world_coordinates(DEFAULT_HEX_SIZE);
-    gizmos.arrow(start, end, ORANGE);
-}
 
 #[cfg(debug_assertions)]
 fn debug_zeppelin_path(mut gizmos: Gizmos, zeppelin: Single<&ZeppelinPath>) {
@@ -349,7 +287,7 @@ fn debug_zeppelin_forward(mut gizmos: Gizmos, zeppelin: Single<&Transform, With<
 }
 
 pub fn plugin(app: &mut App) {
-    app.register_type::<PossibleCourse>()
+    app.add_plugins(possible_course::plugin)
         .add_message::<ReachedCoordinatesMessage>()
         .add_systems(Startup, setup)
         .add_systems(
@@ -359,15 +297,12 @@ pub fn plugin(app: &mut App) {
                 brake,
                 (control_speed, tick_path, follow_path).chain(),
             ),
-        )
-        .add_observer(on_insert_course)
-        .add_observer(on_remove_course);
+        );
 
     #[cfg(debug_assertions)]
     app.add_systems(
         Update,
         (
-            debug_course.run_if(resource_exists::<PossibleCourse>),
             debug_zeppelin_path,
             debug_zeppelin_forward,
         ),
