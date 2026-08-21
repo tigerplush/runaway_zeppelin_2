@@ -47,7 +47,7 @@ impl FromWorld for PopupWindowHandles {
             max_corner_scale: 1.0,
         };
         Self {
-            popup_window_background: asset_server.load("ui/graphics/btn_middle_2.png"),
+            popup_window_background: asset_server.load("ui/graphics/window_popup.png"),
             slicer,
         }
     }
@@ -374,6 +374,7 @@ pub fn plugin(app: &mut App) {
         .load_resource::<StatusBarHandles>()
         .load_resource::<ResourceIconHandles>()
         .add_systems(OnEnter(AppStates::InGame), setup)
+        .load_resource::<PopupWindowHandles>()
         .add_observer(on_add_needs_styling)
         .add_observer(on_add_needs_placement)
         .add_observer(on_add_needs_icon)

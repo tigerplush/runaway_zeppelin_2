@@ -81,10 +81,6 @@ fn setup(fuel_tank: Single<&FuelTank>, mut commands: Commands) {
         ));
 }
 
-fn on_hover(trigger: On<Pointer<Enter>>) {
-    info!("entering {}", trigger.entity);
-}
-
 fn update_fuel_label(
     fuel_tank: Single<&FuelTank>,
     mut amount: Single<&mut Text, With<FuelAmount>>,
@@ -97,6 +93,5 @@ fn update_fuel_label(
 pub fn plugin(app: &mut App) {
     app.register_type::<FuelTank>()
         .add_systems(OnEnter(AppStates::InGame), setup)
-        .add_systems(Update, update_fuel_label)
-        .add_observer(on_hover);
+        .add_systems(Update, update_fuel_label);
 }
