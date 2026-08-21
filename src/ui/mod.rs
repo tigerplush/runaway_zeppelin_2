@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use pyri_tooltip::TooltipSettings;
 
 use crate::{asset_tracking::LoadResource, states::AppStates};
 
@@ -124,7 +125,6 @@ impl FromWorld for ResourceIconHandles {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq)]
 pub enum ResourceSlot {
     Fuel,
@@ -189,6 +189,16 @@ fn setup(status_bar_handles: Res<StatusBarHandles>, mut commands: Commands) {
             )
         ],
     ));
+}
+
+fn setup_tooltip(
+    mut tooltip: ResMut<TooltipSettings>,
+    popup_window_handles: Res<PopupWindowHandles>,
+    mut commands: Commands,
+) {
+    // tooltip.container = commands
+    //     .spawn((Node { ..default() }, popup_window_handles.image_node()))
+    //     .id();
 }
 
 #[derive(Component)]
@@ -373,7 +383,8 @@ pub fn plugin(app: &mut App) {
         .load_resource::<ButtonHandles>()
         .load_resource::<StatusBarHandles>()
         .load_resource::<ResourceIconHandles>()
-        .add_systems(OnEnter(AppStates::InGame), setup)
+        .load_resource::<PopupWindowHandles>()
+        .add_systems(OnEnter(AppStates::InGame), (setup, setup_tooltip))
         .add_observer(on_add_needs_styling)
         .add_observer(on_add_needs_placement)
         .add_observer(on_add_needs_icon)
