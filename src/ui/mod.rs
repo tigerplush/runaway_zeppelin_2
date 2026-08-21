@@ -2,6 +2,10 @@ use bevy::prelude::*;
 
 use crate::{asset_tracking::LoadResource, states::AppStates};
 
+mod tooltip;
+
+pub use tooltip::*;
+
 #[derive(Component)]
 pub struct UiRoot;
 
@@ -123,7 +127,6 @@ impl FromWorld for ResourceIconHandles {
         }
     }
 }
-
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum ResourceSlot {
@@ -251,6 +254,7 @@ pub fn label(label: impl Into<String>, slot: AttachToUiSlot) -> impl Bundle {
     (
         Name::from(format!("{} Label", label)),
         Text(label),
+        FontChoice::Content,
         NeedsPlacement,
         slot,
     )
@@ -263,7 +267,11 @@ struct NeedsIcon(ResourceSlot);
 /// callers never need to know which handle or asset path an icon comes
 /// from). Attach your own content (e.g. `Text` + a marker + `Tooltip`) as a
 /// child of the returned entity - `ui` only owns the icon and row layout.
-pub fn resource_label(slot: ResourceSlot) -> impl Bundle {
+pub fn resource_label(
+    label: impl Into<String>,
+    label_bundle: impl Bundle,
+    slot: ResourceSlot,
+) -> impl Bundle {
     (
         Name::from("Resource Label"),
         Node {
@@ -274,7 +282,26 @@ pub fn resource_label(slot: ResourceSlot) -> impl Bundle {
         },
         NeedsPlacement,
         NeedsIcon(slot),
+        children![(Text::new(label), FontChoice::Content, label_bundle),],
         AttachToUiSlot::ResourceBar(slot),
+    )
+}
+
+pub fn labeled_resource_row(
+    label: impl Into<String>,
+    initial_value: impl Into<String>,
+    value_bundle: impl Bundle,
+) -> impl Bundle {
+    (
+        Node {
+            justify_content: JustifyContent::SpaceBetween,
+            column_gap: Val::Px(20.0),
+            ..default()
+        },
+        children![
+            (Text::new(label), FontChoice::Content),
+            (Text::new(initial_value), FontChoice::Content, value_bundle),
+        ],
     )
 }
 
@@ -368,7 +395,7 @@ fn on_add_text(
 }
 
 pub fn plugin(app: &mut App) {
-    app.add_plugins(pyri_tooltip::TooltipPlugin::default())
+    app.add_plugins(tooltip::plugin)
         .load_resource::<FontHandles>()
         .load_resource::<ButtonHandles>()
         .load_resource::<StatusBarHandles>()

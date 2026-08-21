@@ -1,22 +1,30 @@
 use bevy::prelude::*;
-use pyri_tooltip::prelude::*;
 
-use crate::{states::AppStates, ui::{self, ResourceSlot}};
+use crate::{
+    states::AppStates,
+    ui::{self, ResourceSlot},
+};
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
 pub(super) struct FuelTank {
-    /// in kg
-    pub(super) fuel_capacity: f32,
+    /// in L
+    pub(super) fuel_amount: f32,
     /// in m³
-    pub(super) gas_capacity: f32,
+    pub(super) gas_amount: f32,
+}
+
+impl FuelTank {
+    fn total_amount(&self) -> f32 {
+        self.fuel_amount + self.gas_amount
+    }
 }
 
 impl Default for FuelTank {
     fn default() -> Self {
         Self {
-            fuel_capacity: 8_000.0,
-            gas_capacity: 30_000.0,
+            fuel_amount: 8_000.0,
+            gas_amount: 30_000.0,
         }
     }
 }
@@ -36,58 +44,46 @@ fn format_amount(value: f32) -> String {
     grouped.chars().rev().collect()
 }
 
-fn total_label(tank: &FuelTank) -> String {
-    format_amount(tank.fuel_capacity + tank.gas_capacity)
-}
-
-fn tooltip_content(tank: &FuelTank) -> String {
-    format!(
-        "Petrol: {} L\nBlaugas: {} m3",
-        format_amount(tank.fuel_capacity),
-        format_amount(tank.gas_capacity),
-    )
-}
-
-/// Marks the whole row (icon + amount), which is where the `Tooltip` lives -
-/// hovering the icon should open the tooltip just as much as hovering the
-/// number, so it can't sit only on the inner text entity.
 #[derive(Component)]
-struct FuelRow;
-
-/// Marks just the amount text, so it can be updated without digging through
-/// `Children` to find it.
-#[derive(Component)]
-struct FuelAmount;
+enum FuelType {
+    Total,
+    Fuel,
+    Gas,
+}
 
 fn setup(fuel_tank: Single<&FuelTank>, mut commands: Commands) {
-    commands
-        .spawn(ui::resource_label(ResourceSlot::Fuel))
-        .insert((
-            FuelRow,
-            // pyri_tooltip's activation delay counts down on Res<Time>, which
-            // mirrors Time<Virtual> - and the game starts paused, so any
-            // nonzero delay would never elapse. IMMEDIATE skips that whole
-            // codepath (see TooltipState::Delayed in pyri_tooltip's context.rs).
-            Tooltip::cursor(tooltip_content(&fuel_tank))
-                .with_activation(TooltipActivation::IMMEDIATE),
+    let parent = commands
+        .spawn(ui::resource_label(
+            format!("{}", fuel_tank.total_amount()),
+            FuelType::Total,
+            ResourceSlot::Fuel,
         ))
-        .with_child((
-            FuelAmount,
-            Text(total_label(&fuel_tank)),
-            // Same reason as the icon in ui::resource_label: without this,
-            // hovering the number itself steals Interaction::Hovered away
-            // from FuelRow, and pyri_tooltip never sees the Tooltip on it.
-            Pickable::IGNORE,
-        ));
+        .id();
+    commands.spawn(ui::tooltip(
+        parent,
+        children![
+            ui::labeled_resource_row(
+                "Fuel",
+                format!("{} L", format_amount(fuel_tank.fuel_amount)),
+                FuelType::Fuel
+            ),
+            ui::labeled_resource_row(
+                "Blaugas",
+                format!("{} m³", format_amount(fuel_tank.gas_amount)),
+                FuelType::Gas
+            ),
+        ],
+    ));
 }
 
-fn update_fuel_label(
-    fuel_tank: Single<&FuelTank>,
-    mut amount: Single<&mut Text, With<FuelAmount>>,
-    mut tooltip: Single<&mut Tooltip, With<FuelRow>>,
-) {
-    amount.0 = total_label(&fuel_tank);
-    tooltip.content = tooltip_content(&fuel_tank).into();
+fn update_fuel_label(fuel_tank: Single<&FuelTank>, mut amount: Query<(&FuelType, &mut Text)>) {
+    for (fuel_type, mut text) in &mut amount {
+        match fuel_type {
+            FuelType::Total => text.0 = format_amount(fuel_tank.total_amount()),
+            FuelType::Fuel => text.0 = format!("{} L", format_amount(fuel_tank.fuel_amount)),
+            FuelType::Gas => text.0 = format!("{} m³", format_amount(fuel_tank.gas_amount)),
+        }
+    }
 }
 
 pub fn plugin(app: &mut App) {

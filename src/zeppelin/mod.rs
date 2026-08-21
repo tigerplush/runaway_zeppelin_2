@@ -240,8 +240,8 @@ fn control_speed(
         } else {
             settings.accelerate(&time.delta());
         }
-        fuel_tank.fuel_capacity -= engine.fuel_consumption_rate() * time.delta_secs();
-        fuel_tank.gas_capacity -= engine.gas_consumption_rate() * time.delta_secs();
+        fuel_tank.fuel_amount -= engine.fuel_consumption_rate() * time.delta_secs();
+        fuel_tank.gas_amount -= engine.gas_consumption_rate() * time.delta_secs();
     }
 }
 
