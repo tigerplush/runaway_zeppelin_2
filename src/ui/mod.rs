@@ -70,10 +70,43 @@ impl FromWorld for StatusBarHandles {
     }
 }
 
+#[derive(Asset, Clone, Reflect, Resource)]
+struct ResourceIconHandles {
+    fuel: Handle<Image>,
+}
+
+impl FromWorld for ResourceIconHandles {
+    fn from_world(world: &mut World) -> Self {
+        let asset_server = world.resource::<AssetServer>();
+        Self {
+            fuel: asset_server.load("ui/icons/fuel.png"),
+        }
+    }
+}
+
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum ResourceSlot {
+    Fuel,
+}
+
 #[derive(Component, PartialEq)]
 enum UiSlot {
-    StatusBar,
+    InGameTimeDisplay,
     Action,
+    Resource(ResourceSlot),
+}
+
+fn resource_bar() -> impl Bundle {
+    (
+        Name::from("ResourceBar"),
+        Node { ..default() },
+        children![(
+            Name::from("Fuel"),
+            UiSlot::Resource(ResourceSlot::Fuel),
+            Node { ..default() },
+        )],
+    )
 }
 
 fn setup(status_bar_handles: Res<StatusBarHandles>, mut commands: Commands) {
@@ -89,17 +122,25 @@ fn setup(status_bar_handles: Res<StatusBarHandles>, mut commands: Commands) {
         },
         children![
             (
-                UiSlot::StatusBar,
                 Name::from("StatusBar"),
                 Node {
                     width: Val::Percent(100.0),
+                    justify_content: JustifyContent::SpaceBetween,
                     ..default()
                 },
                 ImageNode {
                     image: status_bar_handles.background_image.clone(),
                     image_mode: NodeImageMode::Stretch,
                     ..default()
-                }
+                },
+                children![
+                    resource_bar(),
+                    (
+                        Name::from("InGameTimeDisplay"),
+                        UiSlot::InGameTimeDisplay,
+                        Node { ..default() },
+                    )
+                ]
             ),
             (
                 UiSlot::Action,
@@ -112,8 +153,9 @@ fn setup(status_bar_handles: Res<StatusBarHandles>, mut commands: Commands) {
 
 #[derive(Component)]
 pub enum AttachToUiSlot {
-    StatusBar,
+    InGameTimeLabel,
     Action,
+    ResourceBar(ResourceSlot),
 }
 
 #[derive(Component)]
@@ -197,9 +239,12 @@ fn on_add_needs_placement(
 
     let parent_maybe = match attach_to {
         AttachToUiSlot::Action => ui_slots.iter().find(|&(_, slot)| &UiSlot::Action == slot),
-        AttachToUiSlot::StatusBar => ui_slots
+        AttachToUiSlot::InGameTimeLabel => ui_slots
             .iter()
-            .find(|&(_, slot)| &UiSlot::StatusBar == slot),
+            .find(|&(_, slot)| &UiSlot::InGameTimeDisplay == slot),
+        AttachToUiSlot::ResourceBar(resource_slot) => ui_slots
+            .iter()
+            .find(|&(_, slot)| &UiSlot::Resource(*resource_slot) == slot),
     };
 
     let Some((parent, _)) = parent_maybe else {
@@ -237,6 +282,7 @@ pub fn plugin(app: &mut App) {
     app.load_resource::<FontHandles>()
         .load_resource::<ButtonHandles>()
         .load_resource::<StatusBarHandles>()
+        .load_resource::<ResourceIconHandles>()
         .add_systems(OnEnter(AppStates::InGame), setup)
         .add_observer(on_add_needs_styling)
         .add_observer(on_add_needs_placement)

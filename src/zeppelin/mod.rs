@@ -5,9 +5,10 @@ use bevy::prelude::*;
 use crate::{
     pointer::SelectTileMessage,
     utils::{hex::*, scale::WorldScale, types::*},
-    zeppelin::{possible_course::PossibleCourse, zeppelin_path::ZeppelinPath},
+    zeppelin::{fuel_tank::FuelTank, possible_course::PossibleCourse, zeppelin_path::ZeppelinPath},
 };
 
+mod fuel_tank;
 mod possible_course;
 mod zeppelin_path;
 
@@ -25,10 +26,6 @@ struct ZeppelinMovementSettings {
     acceleration: Acceleration,
     deceleration: Acceleration,
     maximum_turn_radius: f32,
-    /// in kg
-    fuel_capacity: f32,
-    /// in m³
-    gas_capacity: f32,
 }
 
 impl ZeppelinMovementSettings {
@@ -44,8 +41,6 @@ impl ZeppelinMovementSettings {
             acceleration,
             deceleration,
             maximum_turn_radius,
-            fuel_capacity: 8_000.0,
-            gas_capacity: 30_000.0,
         }
     }
 
@@ -138,6 +133,7 @@ fn setup(
                 fuel_consumption_rate: 250.0 / 3600.0,
                 gas_consumption_rate: 250.0 / 3600.0,
             },
+            FuelTank::default(),
         ))
         .with_child((
             Mesh3d(meshes.add(Capsule3d::default())),
@@ -231,16 +227,21 @@ fn tick_engine(time: Res<Time<Virtual>>, engine: Single<(&mut Engine, Option<&Ze
 
 fn control_speed(
     time: Res<Time<Virtual>>,
-    mut query: Query<(&ZeppelinPath, &mut ZeppelinMovementSettings, &Engine)>,
+    mut query: Query<(
+        &ZeppelinPath,
+        &mut ZeppelinMovementSettings,
+        &Engine,
+        &mut FuelTank,
+    )>,
 ) {
-    for (path, mut settings, engine) in &mut query {
+    for (path, mut settings, engine, mut fuel_tank) in &mut query {
         if path.remaining_length() <= settings.braking_distance().0 {
             settings.decelerate(&time.delta());
         } else {
             settings.accelerate(&time.delta());
         }
-        settings.fuel_capacity -= engine.fuel_consumption_rate() * time.delta_secs();
-        settings.gas_capacity -= engine.gas_consumption_rate() * time.delta_secs();
+        fuel_tank.fuel_capacity -= engine.fuel_consumption_rate() * time.delta_secs();
+        fuel_tank.gas_capacity -= engine.gas_consumption_rate() * time.delta_secs();
     }
 }
 
@@ -342,7 +343,7 @@ fn debug_zeppelin_forward(mut gizmos: Gizmos, zeppelin: Single<&Transform, With<
 
 pub fn plugin(app: &mut App) {
     app.register_type::<Engine>()
-        .add_plugins(possible_course::plugin)
+        .add_plugins((fuel_tank::plugin, possible_course::plugin))
         .add_message::<ReachedCoordinatesMessage>()
         .add_systems(Startup, setup)
         .add_systems(

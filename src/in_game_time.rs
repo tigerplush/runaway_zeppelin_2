@@ -87,7 +87,7 @@ struct InGameTimeLabel;
 fn setup(in_game_time: Res<InGameTime>, mut time: ResMut<Time<Virtual>>, mut commands: Commands) {
     commands.spawn((Name::from("Time Controls"), time_control()));
     commands.spawn((
-        ui::label(format!("{}", *in_game_time), AttachToUiSlot::StatusBar),
+        ui::label(format!("{}", *in_game_time), AttachToUiSlot::InGameTimeLabel),
         InGameTimeLabel,
     ));
     apply_speed(&mut time, &in_game_time);
