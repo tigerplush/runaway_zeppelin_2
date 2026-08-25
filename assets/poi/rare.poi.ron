@@ -1,0 +1,3 @@
+(
+    remove_after_spawns: Some(2),
+)

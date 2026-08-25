@@ -198,7 +198,9 @@ fn read_reached_coordinates(
 }
 
 pub fn plugin(app: &mut App) {
-    app.add_message::<ReachedPoiMessage>()
+    app.register_type::<Poi>()
+        .add_message::<ReachedPoiMessage>()
+        .add_plugins(poi::plugin)
         .add_systems(Startup, spawn_map)
         .add_systems(Update, read_reached_coordinates);
 }
