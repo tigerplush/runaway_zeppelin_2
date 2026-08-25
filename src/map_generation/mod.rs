@@ -1,14 +1,15 @@
-use std::{
-    f32::consts::PI,
-    ops::{Index, IndexMut},
-};
+use std::f32::consts::PI;
 
 use bevy::prelude::*;
 use bevy_rand::{global::GlobalRng, prelude::ChaCha8Rng};
 use rand::RngExt;
 
 use crate::{
-    map_generation::poi::Poi,
+    map_generation::{
+        grid::Grid,
+        poi::{AvailablePois, Poi, WorldState},
+    },
+    states::AppStates,
     utils::{
         hex::{AxialCoordinates, DEFAULT_HEX_SIZE},
         scale::WorldScale,
@@ -16,55 +17,8 @@ use crate::{
     zeppelin::ReachedCoordinatesMessage,
 };
 
+mod grid;
 mod poi;
-
-struct Grid {
-    contents: Vec<Option<usize>>,
-    width: usize,
-    height: usize,
-}
-
-impl Grid {
-    fn new(width: usize, height: usize) -> Self {
-        Self {
-            contents: vec![None; width * height],
-            width,
-            height,
-        }
-    }
-
-    fn index(&self, x: usize, y: usize) -> usize {
-        x + y * self.width
-    }
-}
-
-impl Index<(usize, usize)> for Grid {
-    type Output = Option<usize>;
-    fn index(&self, index: (usize, usize)) -> &Self::Output {
-        let index = self.index(index.0, index.1);
-        &self.contents[index]
-    }
-}
-
-impl IndexMut<(usize, usize)> for Grid {
-    fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
-        let index = self.index(index.0, index.1);
-        &mut self.contents[index]
-    }
-}
-
-impl Index<usize> for Grid {
-    type Output = Option<usize>;
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.contents[index]
-    }
-}
-
-impl IndexMut<usize> for Grid {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.contents[index]
-    }
-}
 
 fn sample_poisson_disc(
     radius: f32,
@@ -151,6 +105,7 @@ fn is_valid(
 
 fn spawn_map(
     scale: Res<WorldScale>,
+    mut available_pois: ResMut<AvailablePois>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut rng: Single<&mut ChaCha8Rng, With<GlobalRng>>,
@@ -169,6 +124,10 @@ fn spawn_map(
             DEFAULT_HEX_SIZE,
         )
         .as_world_coordinates(DEFAULT_HEX_SIZE);
+
+        let Some(_poi) = available_pois.get(&WorldState, &mut rng) else {
+            continue;
+        };
 
         commands.spawn((
             Mesh3d(meshes.add(Extrusion::new(RegularPolygon::default(), 0.1))),
@@ -201,6 +160,9 @@ pub fn plugin(app: &mut App) {
     app.register_type::<Poi>()
         .add_message::<ReachedPoiMessage>()
         .add_plugins(poi::plugin)
-        .add_systems(Startup, spawn_map)
+        .add_systems(
+            OnEnter(AppStates::InGame),
+            spawn_map.run_if(resource_exists::<AvailablePois>),
+        )
         .add_systems(Update, read_reached_coordinates);
 }

@@ -68,7 +68,7 @@ fn build_available_pois(
         .filter_map(|handle| poi_contents.get(&handle))
         .cloned()
         .collect::<Vec<PoiContent>>();
-    info!("Loaded {} POIs", pois.len());
+    debug!("Loaded {} POIs", pois.len());
     commands.insert_resource(AvailablePois(pois));
 }
 
@@ -129,5 +129,5 @@ pub(super) fn plugin(app: &mut App) {
         .register_type::<AvailablePois>()
         .load_resource::<PoiFolder>()
         .add_plugins(RonAssetPlugin::<PoiContent>::new(&["poi.ron"]))
-        .add_systems(OnEnter(AppStates::InGame), build_available_pois);
+        .add_systems(OnExit(AppStates::Preloading), build_available_pois);
 }
