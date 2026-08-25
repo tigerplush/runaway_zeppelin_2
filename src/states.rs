@@ -10,6 +10,7 @@ pub enum AppStates {
 }
 
 fn advance_state(res: Res<ResourceHandles>, mut next: ResMut<NextState<AppStates>>) {
+    info!("{:.2}%", res.progress() * 100.0);
     if res.is_all_done() {
         next.set(AppStates::InGame);
     }

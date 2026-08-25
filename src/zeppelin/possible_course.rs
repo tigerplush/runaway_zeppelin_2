@@ -77,7 +77,7 @@ fn debug_course(
     use crate::utils::hex::DEFAULT_HEX_SIZE;
 
     let start = zeppelin.translation;
-    let end = course.target.to_world_coordinates(DEFAULT_HEX_SIZE);
+    let end = course.target.as_world_coordinates(DEFAULT_HEX_SIZE);
     gizmos.arrow(start, end, ORANGE);
 }
 

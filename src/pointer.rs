@@ -89,7 +89,7 @@ fn debug_pointer(mut gizmos: Gizmos, pointer: Single<(&Transform, &Pointer)>) {
         GREEN,
     );
     if let Some(point) = pointer.current_position {
-        let translation = point.to_world_coordinates(DEFAULT_HEX_SIZE);
+        let translation = point.as_world_coordinates(DEFAULT_HEX_SIZE);
         gizmos.arrow(translation + Vec3::Y, translation, ORANGE);
     }
 }

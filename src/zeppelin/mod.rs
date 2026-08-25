@@ -216,7 +216,7 @@ fn read_selected_tiles(
         {
             commands.remove_resource::<PossibleCourse>();
         } else {
-            let target = ev.0.to_world_coordinates(DEFAULT_HEX_SIZE);
+            let target = ev.0.as_world_coordinates(DEFAULT_HEX_SIZE);
             if let Ok(path) = ZeppelinPath::new(
                 transform.translation,
                 transform.forward().as_vec3(),

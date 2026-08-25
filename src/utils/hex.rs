@@ -49,7 +49,7 @@ impl AxialCoordinates {
         rounded_cube.into()
     }
 
-    pub fn to_world_coordinates(&self, size: impl Into<Vec2>) -> WorldCoordinates {
+    pub fn as_world_coordinates(&self, size: impl Into<Vec2>) -> WorldCoordinates {
         let size = size.into();
         let x = size.x * (3_f32.sqrt() * self.q as f32 + 3_f32.sqrt() / 2.0 * self.r as f32);
         let z = size.y * (3.0 / 2.0 * self.r as f32);

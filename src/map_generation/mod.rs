@@ -96,8 +96,8 @@ fn sample_poisson_disc(
                 &grid,
                 radius,
             ) {
-                points.push(candidate.clone());
-                spawn_points.push(candidate.clone());
+                points.push(candidate);
+                spawn_points.push(candidate);
 
                 let x = (candidate.x / cell_size) as usize;
                 let y = (candidate.y / cell_size) as usize;
@@ -119,7 +119,7 @@ fn is_valid(
     candidate: &Vec2,
     sample_region_size: &Vec2,
     cell_size: f32,
-    points: &Vec<Vec2>,
+    points: &[Vec2],
     grid: &Grid,
     radius: f32,
 ) -> bool {
@@ -168,7 +168,7 @@ fn spawn_map(
             Vec3::new(point.x, 0.0, point.y),
             DEFAULT_HEX_SIZE,
         )
-        .to_world_coordinates(DEFAULT_HEX_SIZE);
+        .as_world_coordinates(DEFAULT_HEX_SIZE);
 
         commands.spawn((
             Mesh3d(meshes.add(Extrusion::new(RegularPolygon::default(), 0.1))),
