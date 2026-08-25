@@ -405,7 +405,7 @@ pub fn plugin(app: &mut App) {
         .load_resource::<ButtonHandles>()
         .load_resource::<StatusBarHandles>()
         .load_resource::<ResourceIconHandles>()
-        .add_systems(OnEnter(AppStates::InGame), setup)
+        .add_systems(OnExit(AppStates::Preloading), setup)
         .load_resource::<PopupWindowHandles>()
         .add_observer(on_add_needs_styling)
         .add_observer(on_add_needs_placement)

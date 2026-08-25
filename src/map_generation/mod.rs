@@ -162,7 +162,7 @@ pub fn plugin(app: &mut App) {
         .add_plugins(poi::plugin)
         .add_systems(
             OnEnter(AppStates::InGame),
-            spawn_map.run_if(resource_exists::<AvailablePois>),
+            spawn_map,
         )
         .add_systems(Update, read_reached_coordinates);
 }
