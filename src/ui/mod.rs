@@ -11,7 +11,9 @@ pub struct UiRoot;
 
 #[derive(Asset, Clone, Reflect, Resource)]
 pub struct FontHandles {
+    #[dependency]
     header: Handle<Font>,
+    #[dependency]
     text: Handle<Font>,
 }
 
@@ -27,6 +29,7 @@ impl FromWorld for FontHandles {
 
 #[derive(Asset, Clone, Reflect, Resource)]
 pub struct PopupWindowHandles {
+    #[dependency]
     popup_window_background: Handle<Image>,
     slicer: TextureSlicer,
 }
@@ -59,6 +62,7 @@ impl FromWorld for PopupWindowHandles {
 
 #[derive(Asset, Clone, Reflect, Resource)]
 pub struct ButtonHandles {
+    #[dependency]
     button_background: Handle<Image>,
     slicer: TextureSlicer,
 }
@@ -94,6 +98,7 @@ impl FromWorld for ButtonHandles {
 
 #[derive(Asset, Clone, Reflect, Resource)]
 struct StatusBarHandles {
+    #[dependency]
     background_image: Handle<Image>,
 }
 
