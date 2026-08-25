@@ -16,10 +16,10 @@ mod fuel_tank;
 mod possible_course;
 mod zeppelin_path;
 
-/// Represents the base of the Zeppelin. This is the entity that is moved and
+/// Marker for the base of the Zeppelin. This is the entity that is moved and
 /// rotated.
 #[derive(Component)]
-struct ZeppelinWrapper;
+pub struct ZeppelinWrapper;
 
 /// Represents zeppelin movement settings.
 #[derive(Component, Reflect)]
