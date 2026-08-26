@@ -12,7 +12,7 @@ use crate::{
         hex::{AxialCoordinates, DEFAULT_HEX_SIZE},
         scale::WorldScale,
     },
-    zeppelin::{EnteredCoordinatesMessage, VisibilityRange, ZeppelinWrapper},
+    zeppelin::{EnteredCoordinatesMessage, VisibilityRadius, ZeppelinWrapper},
 };
 
 #[derive(Debug, Reflect)]
@@ -30,7 +30,7 @@ fn update_fog_of_war(
     world_scale: Res<WorldScale>,
     mut fog_of_war: ResMut<FogOfWar>,
     mut reader: MessageReader<EnteredCoordinatesMessage>,
-    visibility_range: Single<&VisibilityRange, With<ZeppelinWrapper>>,
+    visibility_range: Single<&VisibilityRadius, With<ZeppelinWrapper>>,
 ) {
     for ev in reader.read() {
         let distance = world_scale.units(visibility_range.0) as isize;

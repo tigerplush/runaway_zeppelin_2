@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, f32::consts::TAU};
 
 use bevy::prelude::*;
 use bevy_rand::prelude::ChaCha8Rng;
@@ -51,13 +51,17 @@ impl PoissonDiscSampler {
         }
 
         let mut new_points = Vec::new();
-        let mut spawn_points = vec![center];
+        let spawn_center = match exclusion_radius {
+            Some(radius) => center + Vec2::from_angle(self.rng.random::<f32>() * TAU) * radius,
+            None => center,
+        };
+        let mut spawn_points = vec![spawn_center];
 
         while let Some(spawn_point) = spawn_points.pop() {
             let mut candidate_accepted = false;
 
             for _index in 0..self.num_samples_before_rejection {
-                let angle = self.rng.random::<f32>() * std::f32::consts::TAU;
+                let angle = self.rng.random::<f32>() * TAU;
                 let dir = Vec2::from_angle(angle);
                 let distance = self
                     .rng

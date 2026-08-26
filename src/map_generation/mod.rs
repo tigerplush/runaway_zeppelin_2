@@ -14,7 +14,7 @@ use crate::{
         scale::WorldScale,
     },
     zeppelin::{
-        EnteredCoordinatesMessage, ReachedCoordinatesMessage, VisibilityRange, ZeppelinWrapper,
+        EnteredCoordinatesMessage, ReachedCoordinatesMessage, VisibilityRadius, ZeppelinWrapper,
     },
 };
 
@@ -28,7 +28,7 @@ fn spawn_map(
     mut poisson_disc_sampler: ResMut<PoissonDiscSampler>,
     mut poi_map: ResMut<PoiMap>,
     reader: MessageReader<EnteredCoordinatesMessage>,
-    zeppelin: Single<(&Transform, &VisibilityRange), (With<ZeppelinWrapper>, Without<Poi>)>,
+    zeppelin: Single<(&Transform, &VisibilityRadius), (With<ZeppelinWrapper>, Without<Poi>)>,
     mut rng: Single<&mut ChaCha8Rng, With<GlobalRng>>,
     mut commands: Commands,
     mut first_run_done: Local<bool>,
@@ -46,7 +46,7 @@ fn spawn_map(
     } else {
         None
     };
-    let sample_radius = scale.units(visibility_range.0) * 2.0;
+    let sample_radius = scale.units(visibility_range.0 + poi_distance.0);
 
     let distance_between_points = scale.units(poi_distance.0);
     // sample around zeppelin

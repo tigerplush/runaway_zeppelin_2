@@ -12,7 +12,7 @@ use crate::{
     asset_tracking::LoadResource,
     states::AppStates,
     utils::{hex::AxialCoordinates, scale::WorldScale},
-    zeppelin::{VisibilityRange, ZeppelinWrapper},
+    zeppelin::{VisibilityRadius, ZeppelinWrapper},
 };
 
 pub(super) struct WorldState;
@@ -134,13 +134,14 @@ impl AvailablePois {
 #[reflect(Component)]
 pub struct Poi(pub AxialCoordinates);
 
+/// Distance between POIs in m.
 #[derive(Reflect, Resource)]
 #[reflect(Resource)]
 pub(super) struct PoiDistance(pub(super) f32);
 
 impl Default for PoiDistance {
     fn default() -> Self {
-        Self(25_000f32)
+        Self(50_000f32)
     }
 }
 
@@ -167,7 +168,7 @@ fn debug_poi_distance(
 #[cfg(debug_assertions)]
 fn debug_spawn_distances(
     world_scale: Res<WorldScale>,
-    visibility: Single<(&Transform, &VisibilityRange), With<ZeppelinWrapper>>,
+    visibility: Single<(&Transform, &VisibilityRadius), With<ZeppelinWrapper>>,
     mut gizmos: Gizmos,
 ) {
     use bevy::color::palettes::css::RED;
