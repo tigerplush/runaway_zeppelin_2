@@ -171,6 +171,7 @@ fn setup(
             },
             FuelTank::default(),
             EngineDemand::Shutdown,
+            ZeppelinCoordinates::default(),
         ))
         .with_child((
             Mesh3d(meshes.add(Capsule3d::default())),
@@ -319,6 +320,33 @@ fn tick_path(
     }
 }
 
+/// This message is fired every time the Zeppelin enters a new hex, wether
+/// it has been there before or not.
+#[derive(Message)]
+pub struct EnteredCoordinatesMessage(pub AxialCoordinates);
+
+#[derive(Component, Default, Reflect)]
+#[reflect(Component)]
+struct ZeppelinCoordinates(Option<AxialCoordinates>);
+
+fn check_entered_coordinates(
+    zeppelin: Single<(&Transform, &mut ZeppelinCoordinates)>,
+    mut writer: MessageWriter<EnteredCoordinatesMessage>,
+) {
+    let (transform, mut zeppelin_coordinates) = zeppelin.into_inner();
+    let new_coordinates =
+        AxialCoordinates::from_world_coordinates(transform.translation, DEFAULT_HEX_SIZE);
+
+    if zeppelin_coordinates
+        .0
+        .is_none_or(|hex| hex != new_coordinates)
+    {
+        writer.write(EnteredCoordinatesMessage(new_coordinates));
+        zeppelin_coordinates.0 = Some(new_coordinates);
+    }
+}
+/// This message is fired when the Zeppelin comes to a standstill over a
+/// coordinate.
 #[derive(Message)]
 pub struct ReachedCoordinatesMessage(pub AxialCoordinates);
 
@@ -399,11 +427,13 @@ pub fn plugin(app: &mut App) {
         .register_type::<VisibilityRange>()
         .add_plugins((fuel_tank::plugin, possible_course::plugin))
         .add_message::<ReachedCoordinatesMessage>()
+        .add_message::<EnteredCoordinatesMessage>()
         .add_systems(Startup, setup)
         .add_systems(
             Update,
             (
                 read_selected_tiles,
+                check_entered_coordinates,
                 (
                     decide_engine_demand,
                     apply_engine_demand,
