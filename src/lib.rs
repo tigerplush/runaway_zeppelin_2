@@ -3,6 +3,7 @@ use bevy_rand::{plugin::EntropyPlugin, prelude::ChaCha8Rng};
 
 mod asset_tracking;
 mod camera;
+mod fog_of_war;
 mod in_game_time;
 mod input;
 mod map_generation;
@@ -30,6 +31,7 @@ impl Plugin for AppPlugin {
             .add_plugins((
                 asset_tracking::plugin,
                 camera::plugin,
+                fog_of_war::plugin,
                 in_game_time::plugin,
                 input::plugin,
                 map_generation::plugin,

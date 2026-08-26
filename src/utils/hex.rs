@@ -65,6 +65,14 @@ impl AxialCoordinates {
         let rhs: ICubeCoordinates = rhs.into();
         lhs.distance(&rhs)
     }
+
+    pub fn within_distance(&self, distance: isize) -> Vec<AxialCoordinates> {
+        let cube: ICubeCoordinates = self.into();
+        cube.within_distance(distance)
+            .iter()
+            .map(|cube| cube.into())
+            .collect::<Vec<AxialCoordinates>>()
+    }
 }
 
 impl Add for AxialCoordinates {
@@ -83,6 +91,15 @@ impl From<ICubeCoordinates> for AxialCoordinates {
     }
 }
 
+impl From<&ICubeCoordinates> for AxialCoordinates {
+    fn from(value: &ICubeCoordinates) -> Self {
+        AxialCoordinates {
+            q: value.q,
+            r: value.r,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Reflect)]
 pub struct ICubeCoordinates {
     q: isize,
@@ -91,6 +108,10 @@ pub struct ICubeCoordinates {
 }
 
 impl ICubeCoordinates {
+    const fn new(q: isize, r: isize, s: isize) -> Self {
+        Self { q, r, s }
+    }
+
     fn round(frac: Vec3) -> Self {
         let mut q = frac.x.round();
         let mut r = frac.y.round();
@@ -119,6 +140,20 @@ impl ICubeCoordinates {
         let diff = self - rhs;
         (diff.q.unsigned_abs() + diff.r.unsigned_abs() + diff.s.unsigned_abs()) / 2
     }
+
+    fn within_distance(&self, distance: isize) -> Vec<ICubeCoordinates> {
+        let mut vec = Vec::new();
+        for q in -distance..=distance {
+            for r in -distance..=distance {
+                for s in -distance..=distance {
+                    if q + r + s == 0 {
+                        vec.push(self + ICubeCoordinates::new(q, r, s));
+                    }
+                }
+            }
+        }
+        vec
+    }
 }
 
 impl From<&AxialCoordinates> for ICubeCoordinates {
@@ -127,6 +162,17 @@ impl From<&AxialCoordinates> for ICubeCoordinates {
             q: value.q,
             r: value.r,
             s: -value.q - value.r,
+        }
+    }
+}
+
+impl Add<ICubeCoordinates> for &ICubeCoordinates {
+    type Output = ICubeCoordinates;
+    fn add(self, rhs: ICubeCoordinates) -> Self::Output {
+        ICubeCoordinates {
+            q: self.q + rhs.q,
+            r: self.r + rhs.r,
+            s: self.s + rhs.s,
         }
     }
 }
