@@ -7,7 +7,7 @@ use bevy::color::palettes::css::{DARK_GRAY, GRAY, LIGHT_GRAY, WHITE};
 use bevy::prelude::*;
 
 #[cfg(debug_assertions)]
-use crate::fog_of_war;
+use crate::{fog_of_war, utils::gizmo_traits::DrawHexagon};
 use crate::{
     states::AppStates, utils::{hex::{AxialCoordinates, DEFAULT_HEX_SIZE}, scale::WorldScale}, zeppelin::{VisibilityRange, ZeppelinWrapper},
 };
@@ -55,14 +55,15 @@ fn debug_fog_of_war(mut gizmos: Gizmos, fog_of_war: Res<FogOfWar>) {
             FogState::Revealed => DARK_GRAY.with_alpha(0.5),
             FogState::Visible => LIGHT_GRAY.with_alpha(0.5),
         };
-        gizmos.circle(
-            Isometry3d::new(
-                coordinate.as_world_coordinates(DEFAULT_HEX_SIZE),
-                Quat::from_rotation_x(-PI / 2.),
-            ),
-            0.5,
-            color,
-        );
+        gizmos.draw_hexagon(coordinate.as_world_coordinates(DEFAULT_HEX_SIZE), DEFAULT_HEX_SIZE, color);
+        // gizmos.circle(
+        //     Isometry3d::new(
+        //         coordinate.as_world_coordinates(DEFAULT_HEX_SIZE),
+        //         Quat::from_rotation_x(-PI / 2.),
+        //     ),
+        //     0.5,
+        //     color,
+        // );
     }
 }
 
