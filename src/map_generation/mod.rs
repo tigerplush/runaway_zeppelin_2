@@ -5,13 +5,10 @@ use bevy_rand::{global::GlobalRng, prelude::ChaCha8Rng};
 use rand::RngExt;
 
 use crate::{
-    map_generation::poi::{AvailablePois, Poi, WorldState},
-    states::AppStates,
-    utils::{
+    map_generation::poi::{AvailablePois, Poi, WorldState}, states::AppStates, utils::{
         hex::{AxialCoordinates, DEFAULT_HEX_SIZE},
         scale::WorldScale,
-    },
-    zeppelin::{ReachedCoordinatesMessage, ZeppelinWrapper},
+    }, zeppelin::{ReachedCoordinatesMessage, VisibilityRange, ZeppelinWrapper},
 };
 
 mod poi;
@@ -19,6 +16,7 @@ mod poi;
 fn sample_poisson_disc(
     radius: f32,
     sample_region: Rect,
+    search_bounds: Rect,
     occupied_points: &mut Vec<Vec2>,
     num_samples_before_rejection: usize,
     rng: &mut ChaCha8Rng,
@@ -45,6 +43,7 @@ fn sample_poisson_disc(
             if is_valid(
                 &candidate,
                 &sample_region,
+                &search_bounds,
                 cell_size,
                 &occupied_points,
                 &grid,
@@ -73,14 +72,15 @@ fn sample_poisson_disc(
 fn is_valid(
     candidate: &Vec2,
     sample_region: &Rect,
+    search_bounds: &Rect,
     cell_size: f32,
     points: &[Vec2],
     grid: &HashMap<IVec2, usize>,
     radius: f32,
 ) -> bool {
     let radius_squared = radius * radius;
-    let min = (sample_region.min / cell_size).as_ivec2();
-    let max = (sample_region.max / cell_size).as_ivec2();
+    let min = (search_bounds.min / cell_size).as_ivec2();
+    let max = (search_bounds.max / cell_size).as_ivec2();
 
     if sample_region.contains(*candidate) {
         let cell_x = (candidate.x / cell_size) as i32;
@@ -111,22 +111,23 @@ fn spawn_map(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     current_pois: Query<&Transform, (With<Poi>, Without<ZeppelinWrapper>)>,
-    zeppelin: Single<&Transform, (With<ZeppelinWrapper>, Without<Poi>, Changed<Transform>)>,
+    zeppelin: Single<(&Transform, &VisibilityRange), (With<ZeppelinWrapper>, Without<Poi>, Changed<Transform>)>,
     mut rng: Single<&mut ChaCha8Rng, With<GlobalRng>>,
     mut commands: Commands,
 ) {
     // on moved zeppelin:
+    let (transform, visibility_range) = zeppelin.into_inner();
     // set origin to zeppelin
-    let origin = Vec2::new(zeppelin.translation.x, zeppelin.translation.z);
-    let region_size = Vec2::splat(scale.units(50_000f32));
+    let origin = Vec2::new(transform.translation.x, transform.translation.z);
+    let region_size = Vec2::splat(scale.units(visibility_range.0));
 
     let safe_region = Rect::from_center_size(origin, region_size * 2.0);
     // collect all Pois in range
     let mut previous_pois = current_pois
         .iter()
-        // .filter(|&transform| {
-        //     safe_region.contains(Vec2::new(transform.translation.x, transform.translation.z))
-        // })
+        .filter(|&transform| {
+            safe_region.contains(Vec2::new(transform.translation.x, transform.translation.z))
+        })
         .map(|&transform| Vec2::new(transform.translation.x, transform.translation.z))
         .collect::<Vec<Vec2>>();
 
@@ -135,6 +136,7 @@ fn spawn_map(
     let p = sample_poisson_disc(
         scale.units(25_000f32),
         sample_region,
+        safe_region,
         &mut previous_pois,
         30,
         &mut rng,

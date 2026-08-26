@@ -133,6 +133,11 @@ enum EngineDemand {
     Shutdown,
 }
 
+/// Visibility Range in m
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+pub struct VisibilityRange(pub f32);
+
 fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -145,6 +150,7 @@ fn setup(
             ZeppelinWrapper,
             Visibility::Inherited,
             Transform::default(),
+            VisibilityRange(50_000f32),
             ZeppelinMovementSettings::new(
                 // real LZ127 cruise speed, 33 m/s
                 Velocity(scale.units(33.0)),
@@ -390,6 +396,7 @@ fn debug_zeppelin_forward(mut gizmos: Gizmos, zeppelin: Single<&Transform, With<
 pub fn plugin(app: &mut App) {
     app.register_type::<Engine>()
         .register_type::<EngineDemand>()
+        .register_type::<VisibilityRange>()
         .add_plugins((fuel_tank::plugin, possible_course::plugin))
         .add_message::<ReachedCoordinatesMessage>()
         .add_systems(Startup, setup)
