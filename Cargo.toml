@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = "0.19.1"
+bevy = { version = "0.19.1", features = ["mesh_picking"] }
 bevy-inspector-egui = "0.37.0"
 bevy_common_assets = { version = "0.17.0", features = ["ron"] }
 chrono = "0.4.45"

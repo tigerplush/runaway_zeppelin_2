@@ -1,5 +1,7 @@
 use std::{collections::HashMap, f32::consts::PI};
 
+#[cfg(debug_assertions)]
+use bevy::picking::hover::{Hovered, PickingInteraction};
 use bevy::{asset::LoadedFolder, color::palettes::css::GREEN, prelude::*};
 use bevy_common_assets::ron::RonAssetPlugin;
 use bevy_rand::prelude::ChaCha8Rng;
@@ -144,21 +146,22 @@ impl Default for PoiDistance {
 
 #[cfg(debug_assertions)]
 fn debug_poi_distance(
-    trigger: On<Pointer<Over>>,
     poi_distance: Res<PoiDistance>,
     world_scale: Res<WorldScale>,
     mut gizmos: Gizmos,
-    pois: Query<&Transform, With<Poi>>,
+    pois: Query<(&Transform, &PickingInteraction), With<Poi>>,
 ) {
-    let Ok(transform) = pois.get(trigger.entity) else {
-        return;
-    };
     let distance = world_scale.units(poi_distance.0);
-    gizmos.circle(
-        Isometry3d::new(transform.translation, Quat::from_rotation_x(-PI / 2.)),
-        distance,
-        GREEN,
-    );
+    for (transform, _) in pois
+        .iter()
+        .filter(|&(_, p)| PickingInteraction::Hovered == *p)
+    {
+        gizmos.circle(
+            Isometry3d::new(transform.translation, Quat::from_rotation_x(-PI / 2.)),
+            distance,
+            GREEN,
+        );
+    }
 }
 
 #[cfg(debug_assertions)]
@@ -197,6 +200,5 @@ pub(super) fn plugin(app: &mut App) {
         .add_systems(OnExit(AppStates::Preloading), build_available_pois);
 
     #[cfg(debug_assertions)]
-    app.add_systems(Update, debug_spawn_distances)
-        .add_observer(debug_poi_distance);
+    app.add_systems(Update, (debug_spawn_distances, debug_poi_distance));
 }

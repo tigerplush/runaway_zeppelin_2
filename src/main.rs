@@ -6,7 +6,8 @@ use runaway_zeppelin_2::*;
 
 fn main() -> AppExit {
     let mut app = App::new();
-    app.add_plugins(DefaultPlugins).add_plugins(AppPlugin);
+    app.add_plugins((DefaultPlugins, MeshPickingPlugin))
+        .add_plugins(AppPlugin);
 
     #[cfg(debug_assertions)]
     app.add_plugins((EguiPlugin::default(), WorldInspectorPlugin::new()));

@@ -168,6 +168,7 @@ fn setup(status_bar_handles: Res<StatusBarHandles>, mut commands: Commands) {
             justify_content: JustifyContent::SpaceBetween,
             ..default()
         },
+        Pickable::IGNORE,
         children![
             (
                 Name::from("StatusBar"),

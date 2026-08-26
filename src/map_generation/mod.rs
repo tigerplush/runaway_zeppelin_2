@@ -1,145 +1,61 @@
-use std::{collections::HashMap, f32::consts::PI};
+use std::f32::consts::PI;
 
 use bevy::prelude::*;
 use bevy_rand::{global::GlobalRng, prelude::ChaCha8Rng};
-use rand::RngExt;
 
 use crate::{
-    map_generation::poi::{AvailablePois, Poi, WorldState}, states::AppStates, utils::{
+    map_generation::{
+        poi::{AvailablePois, Poi, PoiDistance, PoiMap, WorldState},
+        poisson_disc_sampler::PoissonDiscSampler,
+    },
+    states::AppStates,
+    utils::{
         hex::{AxialCoordinates, DEFAULT_HEX_SIZE},
         scale::WorldScale,
-    }, zeppelin::{ReachedCoordinatesMessage, VisibilityRange, ZeppelinWrapper},
+    },
+    zeppelin::{
+        EnteredCoordinatesMessage, ReachedCoordinatesMessage, VisibilityRange, ZeppelinWrapper,
+    },
 };
 
 mod poi;
-
-fn sample_poisson_disc(
-    radius: f32,
-    sample_region: Rect,
-    search_bounds: Rect,
-    occupied_points: &mut Vec<Vec2>,
-    num_samples_before_rejection: usize,
-    rng: &mut ChaCha8Rng,
-) -> Vec<Vec2> {
-    let cell_size = radius / 2_f32.sqrt();
-    let mut grid = HashMap::new();
-    for (index, point) in occupied_points.iter().enumerate() {
-        let x = (point.x / cell_size) as i32;
-        let y = (point.y / cell_size) as i32;
-        grid.insert(IVec2::new(x, y), index);
-    }
-    let mut new_points = Vec::new();
-    let mut spawn_points = Vec::new();
-    let starting_point = sample_region.center();
-    spawn_points.push(starting_point);
-    while let Some(spawn_centre) = spawn_points.pop() {
-        let mut candidate_accepted = false;
-        for _index in 0..num_samples_before_rejection {
-            let angle = rng.random::<f32>() * 2.0 * PI;
-            let dir = Vec2::new(angle.sin(), angle.cos());
-            let distance = rng.random_range(radius..=radius * 2.0);
-            let candidate = spawn_centre + dir * distance;
-
-            if is_valid(
-                &candidate,
-                &sample_region,
-                &search_bounds,
-                cell_size,
-                &occupied_points,
-                &grid,
-                radius,
-            ) {
-                new_points.push(candidate);
-                spawn_points.push(candidate);
-                occupied_points.push(candidate);
-
-                let x = (candidate.x / cell_size) as i32;
-                let y = (candidate.y / cell_size) as i32;
-                grid.insert(IVec2::new(x, y), occupied_points.len() - 1);
-                candidate_accepted = true;
-                break;
-            }
-        }
-
-        if candidate_accepted {
-            spawn_points.push(spawn_centre);
-        }
-    }
-
-    new_points
-}
-
-fn is_valid(
-    candidate: &Vec2,
-    sample_region: &Rect,
-    search_bounds: &Rect,
-    cell_size: f32,
-    points: &[Vec2],
-    grid: &HashMap<IVec2, usize>,
-    radius: f32,
-) -> bool {
-    let radius_squared = radius * radius;
-    let min = (search_bounds.min / cell_size).as_ivec2();
-    let max = (search_bounds.max / cell_size).as_ivec2();
-
-    if sample_region.contains(*candidate) {
-        let cell_x = (candidate.x / cell_size) as i32;
-        let cell_y = (candidate.y / cell_size) as i32;
-        let x_min = (cell_x - 2).max(min.x);
-        let x_max = (cell_x + 2).min(max.x);
-        let y_min = (cell_y - 2).max(min.y);
-        let y_max = (cell_y + 2).min(max.y);
-        for x in x_min..=x_max {
-            for y in y_min..=y_max {
-                if let Some(point_index) = grid.get(&IVec2::new(x, y)) {
-                    let distance_squared = (candidate - points[*point_index]).length_squared();
-
-                    if distance_squared < radius_squared {
-                        return false;
-                    }
-                }
-            }
-        }
-        return true;
-    }
-    false
-}
+mod poisson_disc_sampler;
 
 fn spawn_map(
     scale: Res<WorldScale>,
+    poi_distance: Res<PoiDistance>,
     mut available_pois: ResMut<AvailablePois>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    current_pois: Query<&Transform, (With<Poi>, Without<ZeppelinWrapper>)>,
-    zeppelin: Single<(&Transform, &VisibilityRange), (With<ZeppelinWrapper>, Without<Poi>, Changed<Transform>)>,
+    mut poisson_disc_sampler: ResMut<PoissonDiscSampler>,
+    mut poi_map: ResMut<PoiMap>,
+    reader: MessageReader<EnteredCoordinatesMessage>,
+    zeppelin: Single<(&Transform, &VisibilityRange), (With<ZeppelinWrapper>, Without<Poi>)>,
     mut rng: Single<&mut ChaCha8Rng, With<GlobalRng>>,
     mut commands: Commands,
+    mut first_run_done: Local<bool>,
 ) {
+    if reader.is_empty() {
+        return;
+    }
+
     // on moved zeppelin:
     let (transform, visibility_range) = zeppelin.into_inner();
     // set origin to zeppelin
-    let origin = Vec2::new(transform.translation.x, transform.translation.z);
-    let region_size = Vec2::splat(scale.units(visibility_range.0));
+    let center = Vec2::new(transform.translation.x, transform.translation.z);
+    let exclusion_radius = if *first_run_done {
+        Some(scale.units(visibility_range.0))
+    } else {
+        None
+    };
+    let sample_radius = scale.units(visibility_range.0) * 2.0;
 
-    let safe_region = Rect::from_center_size(origin, region_size * 2.0);
-    // collect all Pois in range
-    let mut previous_pois = current_pois
-        .iter()
-        .filter(|&transform| {
-            safe_region.contains(Vec2::new(transform.translation.x, transform.translation.z))
-        })
-        .map(|&transform| Vec2::new(transform.translation.x, transform.translation.z))
-        .collect::<Vec<Vec2>>();
-
-    let sample_region = Rect::from_center_size(origin, region_size);
+    let distance_between_points = scale.units(poi_distance.0);
     // sample around zeppelin
-    let p = sample_poisson_disc(
-        scale.units(25_000f32),
-        sample_region,
-        safe_region,
-        &mut previous_pois,
-        30,
-        &mut rng,
+    let p = poisson_disc_sampler.sample_points(
+        distance_between_points,
+        center,
+        sample_radius,
+        exclusion_radius,
+        &poi_map.0,
     );
 
     for point in p {
@@ -152,14 +68,31 @@ fn spawn_map(
             continue;
         };
 
-        commands.spawn((
-            Mesh3d(meshes.add(Extrusion::new(RegularPolygon::default(), 0.1))),
-            MeshMaterial3d(materials.add(StandardMaterial::default())),
-            Transform::from_rotation(Quat::from_rotation_x(-PI / 2.))
-                .with_translation(coordinates.as_world_coordinates(DEFAULT_HEX_SIZE)),
-            Poi(coordinates),
-        ));
+        let new_poi = commands.spawn(Poi(coordinates)).id();
+        poi_map.0.insert(coordinates, new_poi);
     }
+
+    *first_run_done = true;
+}
+
+fn on_add_poi_attach_visuals(
+    trigger: On<Add, Poi>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    query: Query<&Poi>,
+    mut commands: Commands,
+) {
+    let Ok(poi) = query.get(trigger.entity) else {
+        return;
+    };
+
+    commands.entity(trigger.entity).insert((
+        Mesh3d(meshes.add(Extrusion::new(RegularPolygon::default(), 0.1))),
+        MeshMaterial3d(materials.add(StandardMaterial::default())),
+        Transform::from_rotation(Quat::from_rotation_x(-PI / 2.))
+            .with_translation(poi.0.as_world_coordinates(DEFAULT_HEX_SIZE)),
+        Pickable::default(),
+    ));
 }
 
 #[derive(Message)]
@@ -179,10 +112,13 @@ fn read_reached_coordinates(
 
 pub fn plugin(app: &mut App) {
     app.register_type::<Poi>()
+        .register_type::<PoissonDiscSampler>()
         .add_message::<ReachedPoiMessage>()
+        .insert_resource(PoissonDiscSampler::new(30, ChaCha8Rng::default()))
         .add_plugins(poi::plugin)
         .add_systems(
             Update,
             (spawn_map, read_reached_coordinates).run_if(in_state(AppStates::InGame)),
-        );
+        )
+        .add_observer(on_add_poi_attach_visuals);
 }
