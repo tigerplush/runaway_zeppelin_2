@@ -1,10 +1,17 @@
-use bevy::{asset::LoadedFolder, prelude::*};
+use std::{collections::HashMap, f32::consts::PI};
+
+use bevy::{asset::LoadedFolder, color::palettes::css::GREEN, prelude::*};
 use bevy_common_assets::ron::RonAssetPlugin;
 use bevy_rand::prelude::ChaCha8Rng;
 use rand::RngExt;
 use serde::Deserialize;
 
-use crate::{asset_tracking::LoadResource, states::AppStates, utils::hex::AxialCoordinates};
+use crate::{
+    asset_tracking::LoadResource,
+    states::AppStates,
+    utils::{hex::AxialCoordinates, scale::WorldScale},
+    zeppelin::{VisibilityRange, ZeppelinWrapper},
+};
 
 pub(super) struct WorldState;
 
@@ -112,6 +119,7 @@ impl AvailablePois {
         Some(poi)
     }
 }
+
 /// Represents a Point Of Interest on a map
 ///
 /// Points of interest can be of type Landing
@@ -124,10 +132,71 @@ impl AvailablePois {
 #[reflect(Component)]
 pub struct Poi(pub AxialCoordinates);
 
+#[derive(Reflect, Resource)]
+#[reflect(Resource)]
+pub(super) struct PoiDistance(pub(super) f32);
+
+impl Default for PoiDistance {
+    fn default() -> Self {
+        Self(25_000f32)
+    }
+}
+
+#[cfg(debug_assertions)]
+fn debug_poi_distance(
+    trigger: On<Pointer<Over>>,
+    poi_distance: Res<PoiDistance>,
+    world_scale: Res<WorldScale>,
+    mut gizmos: Gizmos,
+    pois: Query<&Transform, With<Poi>>,
+) {
+    let Ok(transform) = pois.get(trigger.entity) else {
+        return;
+    };
+    let distance = world_scale.units(poi_distance.0);
+    gizmos.circle(
+        Isometry3d::new(transform.translation, Quat::from_rotation_x(-PI / 2.)),
+        distance,
+        GREEN,
+    );
+}
+
+#[cfg(debug_assertions)]
+fn debug_spawn_distances(
+    world_scale: Res<WorldScale>,
+    visibility: Single<(&Transform, &VisibilityRange), With<ZeppelinWrapper>>,
+    mut gizmos: Gizmos,
+) {
+    use bevy::color::palettes::css::RED;
+
+    let (transform, visibility) = visibility.into_inner();
+    let distance = world_scale.units(visibility.0);
+    gizmos.circle(
+        Isometry3d::new(transform.translation, Quat::from_rotation_x(-PI / 2.)),
+        distance,
+        RED,
+    );
+    gizmos.circle(
+        Isometry3d::new(transform.translation, Quat::from_rotation_x(-PI / 2.)),
+        distance * 2.0,
+        GREEN,
+    );
+}
+
+#[derive(Default, Reflect, Resource)]
+#[reflect(Resource)]
+pub(super) struct PoiMap(pub(super) HashMap<AxialCoordinates, Entity>);
+
 pub(super) fn plugin(app: &mut App) {
     app.register_type::<PoiFolder>()
         .register_type::<AvailablePois>()
         .load_resource::<PoiFolder>()
+        .init_resource::<PoiDistance>()
+        .init_resource::<PoiMap>()
         .add_plugins(RonAssetPlugin::<PoiContent>::new(&["poi.ron"]))
         .add_systems(OnExit(AppStates::Preloading), build_available_pois);
+
+    #[cfg(debug_assertions)]
+    app.add_systems(Update, debug_spawn_distances)
+        .add_observer(debug_poi_distance);
 }
