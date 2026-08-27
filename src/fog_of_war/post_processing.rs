@@ -15,6 +15,12 @@ use bevy::{
     },
 };
 
+const BIND_GROUP_LAYOUT_DESCRIPTOR_LABEL: &str = "fog_of_war_bind_group_layout";
+const RENDER_PIPELINE_DESCRIPTOR_LABEL: &str = "fog_of_war_post_process_pipeline";
+const POST_PROCESSING_BIND_GROUP_LABEL: &str = "post_process_bind_group";
+const POST_PROCESSING_RENDER_PASS_DESCRIPTOR_LABEL: &str = "post_process_pass";
+const FOG_OF_WAR_SHADER_PATH: &str = "shader/fog_of_war.wgsl";
+
 #[derive(Component, Default, Clone, Copy, ExtractComponent, Reflect, ShaderType)]
 #[reflect(Component)]
 struct PostProcessingSettings {
@@ -36,7 +42,7 @@ fn init_post_process_pipeline(
     mut commands: Commands,
 ) {
     let layout = BindGroupLayoutDescriptor::new(
-        "fog_of_war_bind_group_layout",
+        BIND_GROUP_LAYOUT_DESCRIPTOR_LABEL,
         &BindGroupLayoutEntries::sequential(
             ShaderStages::FRAGMENT,
             (
@@ -49,11 +55,11 @@ fn init_post_process_pipeline(
 
     let sampler = render_device.create_sampler(&SamplerDescriptor::default());
 
-    let shader = asset_server.load("shader/fog_of_war.wgsl");
+    let shader = asset_server.load(FOG_OF_WAR_SHADER_PATH);
     let vertex_state = fullscreen_shader.to_vertex_state();
 
     let pipeline_id = pipeline_cache.queue_render_pipeline(RenderPipelineDescriptor {
-        label: Some("fog_of_war_post_process_pipeline".into()),
+        label: Some(RENDER_PIPELINE_DESCRIPTOR_LABEL.into()),
         layout: vec![layout.clone()],
         vertex: vertex_state,
         fragment: Some(FragmentState {
@@ -113,7 +119,7 @@ fn post_process_system(
         Some((texture_id, bind_group)) if post_process.source.id() == *texture_id => bind_group,
         cached => {
             let bind_group = ctx.render_device().create_bind_group(
-                "post_process_bind_group",
+                POST_PROCESSING_BIND_GROUP_LABEL,
                 &pipeline_cache.get_bind_group_layout(&post_process_pipeline.layout),
                 &BindGroupEntries::sequential((
                     post_process.source,
@@ -130,7 +136,7 @@ fn post_process_system(
     let mut render_pass = ctx
         .command_encoder()
         .begin_render_pass(&RenderPassDescriptor {
-            label: Some("post_process_pass"),
+            label: Some(POST_PROCESSING_RENDER_PASS_DESCRIPTOR_LABEL),
             color_attachments: &[Some(RenderPassColorAttachment {
                 view: post_process.destination,
                 depth_slice: None,
@@ -167,8 +173,17 @@ pub fn plugin(app: &mut App) {
     };
 
     render_app.add_systems(RenderStartup, init_post_process_pipeline);
-    app.add_systems(
+    #[cfg(not(debug_assertions))]
+    render_app.add_systems(
         Core3d,
-        post_process_system.in_set(Core3dSystems::PostProcess),
+        post_process_system
+            .in_set(Core3dSystems::PostProcess),
+    );
+    #[cfg(debug_assertions)]
+    render_app.add_systems(
+        Core3d,
+        post_process_system
+            .in_set(Core3dSystems::PostProcess)
+            .before(bevy_egui::render::egui_pass),
     );
 }
