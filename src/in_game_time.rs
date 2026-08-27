@@ -160,5 +160,8 @@ pub fn plugin(app: &mut App) {
         .add_observer(on_set_speed.run_if(resource_exists::<InGameTime>));
 
     #[cfg(debug_assertions)]
-    app.add_systems(Update, debug_in_game_time.run_if(resource_exists::<InGameTime>));
+    app.add_systems(
+        Update,
+        debug_in_game_time.run_if(resource_exists::<InGameTime>),
+    );
 }

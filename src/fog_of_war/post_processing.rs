@@ -38,6 +38,7 @@ struct PostProcessingSettings {
     focal_point: Vec3,
     fog_window_half_size: Vec2,
     yaw: f32,
+    time: f32,
 }
 
 #[derive(Resource)]
@@ -214,16 +215,21 @@ fn add_to_camera(
             focal_point: intent.focal_point,
             fog_window_half_size: FOG_WINDOW_HALF_SIZE,
             yaw: intent.yaw.to_radians(),
+            time: 0.0,
         },
         Msaa::Off,
         DepthPrepass,
     ));
 }
 
-fn sync_to_camera(camera: Single<(&mut PostProcessingSettings, &CameraMovementIntent)>) {
+fn sync_post_processing_settings(
+    time: Res<Time<Real>>,
+    camera: Single<(&mut PostProcessingSettings, &CameraMovementIntent)>,
+) {
     let (mut settings, intent) = camera.into_inner();
     settings.focal_point = intent.focal_point;
     settings.yaw = intent.yaw.to_radians();
+    settings.time = time.elapsed_secs_wrapped();
 }
 
 pub fn plugin(app: &mut App) {
@@ -233,7 +239,7 @@ pub fn plugin(app: &mut App) {
             ExtractComponentPlugin::<PostProcessingSettings>::default(),
             UniformComponentPlugin::<PostProcessingSettings>::default(),
         ))
-        .add_systems(Update, sync_to_camera)
+        .add_systems(Update, sync_post_processing_settings)
         .add_observer(add_to_camera);
 
     let Some(render_app) = app.get_sub_app_mut(RenderApp) else {

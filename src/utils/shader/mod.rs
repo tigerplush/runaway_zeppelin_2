@@ -3,8 +3,18 @@
 //! world inspector - no keybinding). Entirely absent in release builds.
 
 use bevy::{
-    core_pipeline::{FullscreenShader, prepass::{DepthPrepass, ViewPrepassTextures}}, material::descriptor::BindGroupLayoutDescriptor, prelude::*, render::{
-        RenderApp, RenderStartup, extract_resource::{ExtractResource, ExtractResourcePlugin}, render_resource::{binding_types::texture_2d, *}, renderer::{RenderContext, ViewQuery}, view::ViewTarget,
+    core_pipeline::{
+        FullscreenShader,
+        prepass::{DepthPrepass, ViewPrepassTextures},
+    },
+    material::descriptor::BindGroupLayoutDescriptor,
+    prelude::*,
+    render::{
+        RenderApp, RenderStartup,
+        extract_resource::{ExtractResource, ExtractResourcePlugin},
+        render_resource::{binding_types::texture_2d, *},
+        renderer::{RenderContext, ViewQuery},
+        view::ViewTarget,
     },
 };
 
@@ -27,7 +37,6 @@ pub fn plugin(app: &mut bevy::app::App) {
                 .before(bevy_egui::render::egui_pass),
         );
 }
-
 
 const BIND_GROUP_LAYOUT_LABEL: &str = "depth_overlay_bind_group_layout";
 const BIND_GROUP_LABEL: &str = "depth_overlay_bind_group";
@@ -97,7 +106,10 @@ fn init_depth_overlay_pipeline(
         ..default()
     });
 
-    commands.insert_resource(DepthOverlayPipeline { layout, pipeline_id });
+    commands.insert_resource(DepthOverlayPipeline {
+        layout,
+        pipeline_id,
+    });
 }
 
 #[derive(Default)]
