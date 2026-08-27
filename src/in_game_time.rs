@@ -75,10 +75,11 @@ fn tick_in_game_time(time: Res<Time<Virtual>>, mut in_game_time: ResMut<InGameTi
     }
 
     in_game_time.current_time += time.delta();
+}
 
-    if cfg!(debug_assertions) {
-        in_game_time.debug_string = format!("{}", *in_game_time);
-    }
+#[cfg(debug_assertions)]
+fn debug_in_game_time(mut in_game_time: ResMut<InGameTime>) {
+    in_game_time.debug_string = format!("{}", *in_game_time);
 }
 
 #[derive(Component)]
@@ -157,4 +158,7 @@ pub fn plugin(app: &mut App) {
             (tick_in_game_time, update_label).run_if(resource_exists::<InGameTime>),
         )
         .add_observer(on_set_speed.run_if(resource_exists::<InGameTime>));
+
+    #[cfg(debug_assertions)]
+    app.add_systems(Update, debug_in_game_time.run_if(resource_exists::<InGameTime>));
 }

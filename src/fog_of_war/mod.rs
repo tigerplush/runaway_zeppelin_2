@@ -5,12 +5,16 @@ use bevy::color::palettes::css::{DARK_GRAY, LIGHT_GRAY};
 use bevy::{
     asset::RenderAssetUsages,
     prelude::*,
-    render::{extract_resource::ExtractResource, render_resource::{Extent3d, TextureDimension, TextureFormat}},
+    render::{
+        extract_resource::ExtractResource,
+        render_resource::{Extent3d, TextureDimension, TextureFormat},
+    },
 };
 
 #[cfg(debug_assertions)]
 use crate::utils::gizmo_traits::DrawHexagon;
 use crate::{
+    camera::CameraMovementIntent,
     states::AppStates,
     utils::{
         hex::{AxialCoordinates, DEFAULT_HEX_SIZE},
@@ -31,7 +35,13 @@ enum FogState {
 /// `update_texture` (which maps world positions into the texture) and the
 /// post-process shader (which maps reconstructed world positions into the
 /// same texture) so they can't drift out of sync.
-pub(super) const FOG_WINDOW_HALF_SIZE: Vec2 = Vec2::new(50.0, 25.0);
+pub(super) const FOG_WINDOW_HALF_SIZE: Vec2 = Vec2::new(16.0, 9.0);
+
+const TEXTURE_EXTENT: Extent3d = Extent3d {
+    width: 640,
+    height: 360,
+    depth_or_array_layers: 1,
+};
 
 #[derive(Default, Reflect, Resource)]
 struct FogOfWar {
@@ -64,14 +74,10 @@ pub(super) struct FogTexture(pub(super) Handle<Image>);
 impl FromWorld for FogTexture {
     fn from_world(world: &mut World) -> Self {
         let mut images = world.resource_mut::<Assets<Image>>();
-        let size = Extent3d {
-            width: 256,
-            height: 256,
-            depth_or_array_layers: 1,
-        };
-        let pixel = [0, 0, 0, 255];
+
+        let pixel = [255, 0, 0, 0];
         let image = Image::new_fill(
-            size,
+            TEXTURE_EXTENT,
             TextureDimension::D2,
             &pixel,
             TextureFormat::Rgba8UnormSrgb,
@@ -94,69 +100,38 @@ impl ExtractResource for FogTexture {
 }
 
 fn update_texture(
-    reader: MessageReader<EnteredCoordinatesMessage>,
     fog_of_war: Res<FogOfWar>,
     fog_texture: Res<FogTexture>,
     mut images: ResMut<Assets<Image>>,
-    zeppelin: Single<&Transform, With<ZeppelinWrapper>>,
+    camera: Single<&CameraMovementIntent>,
 ) {
-    if reader.is_empty() {
-        return;
-    };
-
     let Some(mut image) = images.get_mut(&fog_texture.0) else {
         return;
     };
 
-    let zeppelin_world_xz = Vec2::new(zeppelin.translation.x, zeppelin.translation.z);
-
-    let pixel = [0, 0, 0, 255];
-    image.clear(&pixel);
-
     let width = image.width();
     let height = image.height();
+    for y in 0..height {
+        for x in 0..width {
+            let normalized_x = (x as f32 + 0.5) / width as f32;
+            let normalized_z = (y as f32 + 0.5) / height as f32;
+            let relative = Vec2::new(
+                normalized_x * FOG_WINDOW_HALF_SIZE.x * 2.0 - FOG_WINDOW_HALF_SIZE.x,
+                normalized_z * FOG_WINDOW_HALF_SIZE.y * 2.0 - FOG_WINDOW_HALF_SIZE.y,
+            );
+            let world = Vec3::new(
+                relative.x + camera.focal_point.x,
+                0.0,
+                relative.y + camera.focal_point.z,
+            );
+            let hex = AxialCoordinates::from_world_coordinates(world, DEFAULT_HEX_SIZE);
 
-    // How many pixels one hex spans, so each hex paints a small block rather
-    // than a single dot - blocky for now, not true hex-shaped cells.
-    let hex_spacing = DEFAULT_HEX_SIZE.x * 3f32.sqrt();
-    let half_block_x =
-        ((hex_spacing / (FOG_WINDOW_HALF_SIZE.x * 2.0) * width as f32) / 2.0).ceil() as i32;
-    let half_block_y =
-        ((hex_spacing / (FOG_WINDOW_HALF_SIZE.y * 2.0) * height as f32) / 2.0).ceil() as i32;
-
-    for (coordinates, state) in fog_of_war.revealed.iter() {
-        let world = coordinates.as_world_coordinates(DEFAULT_HEX_SIZE);
-        let relative_x = world.x - zeppelin_world_xz.x;
-        let relative_z = world.z - zeppelin_world_xz.y;
-
-        // Normalize into [0, 1) across the current window (centered on the
-        // zeppelin); skip anything that's fallen outside it (e.g. explored
-        // long ago, far from here).
-        let normalized_x = (relative_x + FOG_WINDOW_HALF_SIZE.x) / (FOG_WINDOW_HALF_SIZE.x * 2.0);
-        let normalized_z = (relative_z + FOG_WINDOW_HALF_SIZE.y) / (FOG_WINDOW_HALF_SIZE.y * 2.0);
-        if !(0.0..1.0).contains(&normalized_x) || !(0.0..1.0).contains(&normalized_z) {
-            continue;
-        }
-
-        let center_x = (normalized_x * width as f32) as i32;
-        let center_y = (normalized_z * height as f32) as i32;
-
-        let color = match state {
-            // Fully clear - nothing hidden where we can currently see.
-            FogState::Visible => Color::NONE,
-            // Dimmed, not fully opaque - remembered, just not in current sight.
-            FogState::Revealed => Color::srgba(0.1, 0.1, 0.1, 0.6),
-        };
-
-        for dx in -half_block_x..=half_block_x {
-            for dy in -half_block_y..=half_block_y {
-                let x = center_x + dx;
-                let y = center_y + dy;
-                if x < 0 || y < 0 || x as u32 >= width || y as u32 >= height {
-                    continue;
-                }
-                let _ = image.set_color_at(x as u32, y as u32, color);
-            }
+            let color = match fog_of_war.revealed.get(&hex) {
+                Some(FogState::Visible) => Color::srgba(0.0, 0.0, 0.0, 0.0),
+                Some(FogState::Revealed) => Color::srgba(0.0, 1.0, 0.0, 0.0),
+                None => Color::srgba(1.0, 0.0, 0.0, 0.0),
+            };
+            _ = image.set_color_at(x, y, color);
         }
     }
 }

@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{color::palettes::tailwind::BLUE_100, prelude::*};
 use bevy_rand::{plugin::EntropyPlugin, prelude::ChaCha8Rng};
 
 mod asset_tracking;
@@ -18,6 +18,21 @@ fn spawn_light(mut commands: Commands) {
     commands.spawn((
         DirectionalLight::default(),
         Transform::from_xyz(0.0, 10.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
+    ));
+}
+
+fn spawn_plane(
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut commmands: Commands,
+) {
+    commmands.spawn((
+        Mesh3d(meshes.add(Plane3d::default())),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: BLUE_100.into(),
+            ..default()
+        })),
+        Transform::from_scale(Vec3::splat(300.0)),
     ));
 }
 
@@ -42,6 +57,6 @@ impl Plugin for AppPlugin {
                 utils::plugin,
                 zeppelin::plugin,
             ))
-            .add_systems(Startup, spawn_light);
+            .add_systems(Startup, (spawn_light, spawn_plane));
     }
 }
