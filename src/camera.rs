@@ -62,7 +62,7 @@ fn on_orbit_with_enable(
     if orbit_enabled.contains(ActionEvents::FIRE) {
         intent.yaw += trigger.value.x;
         intent.pitch += trigger.value.y;
-        intent.pitch = intent.pitch.clamp(-10.0, 90.0);
+        intent.pitch = intent.pitch.clamp(10.0, 90.0);
     }
 }
 

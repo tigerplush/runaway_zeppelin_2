@@ -1,5 +1,5 @@
 use bevy::{
-    core_pipeline::{Core3d, Core3dSystems, FullscreenShader},
+    core_pipeline::{Core3d, Core3dSystems, FullscreenShader, prepass::DepthPrepass},
     material::descriptor::BindGroupLayoutDescriptor,
     prelude::*,
     render::{
@@ -155,9 +155,11 @@ fn post_process_system(
 }
 
 fn add_to_camera(trigger: On<Add, Camera3d>, mut commands: Commands) {
-    commands
-        .entity(trigger.entity)
-        .insert(PostProcessingSettings { intensity: 0.02 });
+    commands.entity(trigger.entity).insert((
+        PostProcessingSettings { intensity: 0.02 },
+        Msaa::Off,
+        DepthPrepass,
+    ));
 }
 
 pub fn plugin(app: &mut App) {
@@ -176,8 +178,7 @@ pub fn plugin(app: &mut App) {
     #[cfg(not(debug_assertions))]
     render_app.add_systems(
         Core3d,
-        post_process_system
-            .in_set(Core3dSystems::PostProcess),
+        post_process_system.in_set(Core3dSystems::PostProcess),
     );
     #[cfg(debug_assertions)]
     render_app.add_systems(
