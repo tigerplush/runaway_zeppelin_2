@@ -35,7 +35,7 @@ enum FogState {
 /// `update_texture` (which maps world positions into the texture) and the
 /// post-process shader (which maps reconstructed world positions into the
 /// same texture) so they can't drift out of sync.
-pub(super) const FOG_WINDOW_HALF_SIZE: Vec2 = Vec2::new(16.0, 9.0);
+pub(super) const FOG_WINDOW_HALF_SIZE: Vec2 = Vec2::new(128.0, 72.0);
 
 const TEXTURE_EXTENT: Extent3d = Extent3d {
     width: 640,
@@ -119,11 +119,10 @@ fn update_texture(
                 normalized_x * FOG_WINDOW_HALF_SIZE.x * 2.0 - FOG_WINDOW_HALF_SIZE.x,
                 normalized_z * FOG_WINDOW_HALF_SIZE.y * 2.0 - FOG_WINDOW_HALF_SIZE.y,
             );
-            let world = Vec3::new(
-                relative.x + camera.focal_point.x,
-                0.0,
-                relative.y + camera.focal_point.z,
-            );
+            let (sin_yaw, cos_yaw) = camera.yaw.to_radians().sin_cos();
+            let world_x = camera.focal_point.x + relative.x * cos_yaw + relative.y * sin_yaw;
+            let world_z = camera.focal_point.z - relative.x * sin_yaw + relative.y * cos_yaw;
+            let world = Vec3::new(world_x, 0.0, world_z);
             let hex = AxialCoordinates::from_world_coordinates(world, DEFAULT_HEX_SIZE);
 
             let color = match fog_of_war.revealed.get(&hex) {

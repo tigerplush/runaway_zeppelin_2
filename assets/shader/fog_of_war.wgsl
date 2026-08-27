@@ -15,12 +15,22 @@ struct PostProcessSettings {
 
 @fragment
 fn fragment(in: FullscreenVertexOutput) -> @location(0) vec4<f32> {
+
     let depth = textureLoad(depth_texture, vec2<i32>(in.position.xy), 0);
     let ndc = vec3<f32>(in.uv.x * 2.0 - 1.0, 1.0 - in.uv.y * 2.0, depth);
     let world_pos_h = view.world_from_clip * vec4<f32>(ndc, 1.0);
     let world_pos = world_pos_h.xyz / world_pos_h.w;
+    
+    
+    let c = cos(settings.yaw);
+    let s = sin(settings.yaw);
     let relative = world_pos.xz - settings.focal_point.xz;
-    let uv = (relative + settings.half_size) / (settings.half_size * 2.0);
+    let local = vec2<f32>(
+        relative.x * c - relative.y * s,
+        relative.x * s + relative.y * c,
+    );
+    let uv = (local + settings.half_size) / (settings.half_size * 2.0);
+
     var haze = 1.0;
     var desaturate = 0.0;
     if (all(uv >= vec2(0.0)) && all(uv < vec2(1.0))) {
