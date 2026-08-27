@@ -1,7 +1,7 @@
 use std::{collections::HashMap, f32::consts::PI};
 
 #[cfg(debug_assertions)]
-use bevy::picking::hover::{Hovered, PickingInteraction};
+use bevy::picking::hover::PickingInteraction;
 use bevy::{asset::LoadedFolder, color::palettes::css::GREEN, prelude::*};
 use bevy_common_assets::ron::RonAssetPlugin;
 use bevy_rand::prelude::ChaCha8Rng;
