@@ -3,7 +3,10 @@ use std::{collections::HashSet, ops::Sub};
 use bevy::{
     asset::RenderAssetUsages,
     prelude::*,
-    render::render_resource::{Extent3d, TextureDimension, TextureFormat},
+    render::{
+        extract_resource::{ExtractResource, ExtractResourcePlugin},
+        render_resource::{Extent3d, ShaderType, TextureDimension, TextureFormat},
+    },
 };
 
 use crate::{utils::scale::WorldScale, zeppelin::VisibilityRadius};
@@ -86,10 +89,10 @@ fn reveal_around_zeppelin(
     }
 }
 
-#[derive(Reflect, Resource)]
+#[derive(Clone, ExtractResource, Reflect, Resource)]
 #[reflect(Resource)]
-struct FogExploredTexture {
-    image: Handle<Image>,
+pub struct FogExploredTexture {
+    pub image: Handle<Image>,
     center: FogCell,
 }
 
@@ -181,9 +184,9 @@ fn sync_explored_texture(
     newly_revealed.0.clear();
 }
 
-#[derive(Default, Reflect, Resource)]
+#[derive(Clone, Default, ExtractResource, Reflect, Resource, ShaderType)]
 #[reflect(Resource)]
-struct FogParams {
+pub struct FogParams {
     zeppelin_world: Vec2,
     window_origin: Vec2,
     window_size: Vec2,
@@ -240,6 +243,10 @@ pub fn plugin(app: &mut App) {
         .init_resource::<FogExploredTexture>()
         .init_resource::<NewlyRevealedCells>()
         .init_resource::<FogParams>()
+        .add_plugins((
+            ExtractResourcePlugin::<FogParams>::default(),
+            ExtractResourcePlugin::<FogExploredTexture>::default(),
+        ))
         .add_systems(
             Update,
             (reveal_around_zeppelin, sync_explored_texture, sync_params).chain(),
