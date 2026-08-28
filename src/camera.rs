@@ -6,9 +6,9 @@ use bevy_enhanced_input::prelude::*;
 #[reflect(Component)]
 pub struct CameraMovementIntent {
     pub focal_point: Vec3,
-    distance: f32,
+    pub distance: f32,
     pub yaw: f32,
-    pitch: f32,
+    pub pitch: f32,
 }
 
 impl Default for CameraMovementIntent {
