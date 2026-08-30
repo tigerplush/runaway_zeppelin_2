@@ -104,9 +104,28 @@ pub fn pointer_control() -> impl Bundle {
     )
 }
 
+#[derive(Component)]
+struct BindingsMap;
+
+fn setup(mut commands: Commands) {
+    commands.spawn((Name::from("Bindings"), BindingsMap));
+}
+
+fn sort_bindings(
+    trigger: On<Add, Binding>,
+    bindings: Single<Entity, With<BindingsMap>>,
+    mut commands: Commands,
+) {
+    commands
+        .entity(trigger.entity)
+        .insert(ChildOf(bindings.entity()));
+}
+
 pub fn plugin(app: &mut App) {
     app.add_plugins(EnhancedInputPlugin)
         .add_input_context::<PanOrbitCam>()
         .add_input_context::<TimeControl>()
-        .add_input_context::<PointerControl>();
+        .add_input_context::<PointerControl>()
+        .add_systems(Startup, setup)
+        .add_observer(sort_bindings);
 }
