@@ -17,8 +17,10 @@ use crate::{
 
 pub(super) struct WorldState;
 
-#[derive(Asset, Clone, Copy, Deserialize, Reflect)]
+#[derive(Asset, Clone, Deserialize, Reflect)]
 pub(super) struct PoiContent {
+    /// What will this poi be referred to as? Should be unique.
+    pub(super) id: String,
     /// How often can the Poi be reused?
     ///
     /// None means it can be reused infinitely, Some(n) means it can be reused n
@@ -115,7 +117,7 @@ impl AvailablePois {
         };
 
         if reuse_poi {
-            self.0.push(poi);
+            self.0.push(poi.clone());
         }
 
         Some(poi)

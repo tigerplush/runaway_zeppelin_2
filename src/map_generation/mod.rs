@@ -21,6 +21,18 @@ use crate::{
 mod poi;
 mod poisson_disc_sampler;
 
+#[derive(Component)]
+struct WorldMap;
+
+fn setup(mut commands: Commands) {
+    commands.spawn((
+        Name::from("WorldMap"),
+        WorldMap,
+        Transform::default(),
+        Visibility::Inherited,
+    ));
+}
+
 fn spawn_map(
     scale: Res<WorldScale>,
     poi_distance: Res<PoiDistance>,
@@ -68,7 +80,7 @@ fn spawn_map(
             continue;
         };
 
-        let new_poi = commands.spawn(Poi(coordinates)).id();
+        let new_poi = commands.spawn((Name::from(_poi.id), Poi(coordinates))).id();
         poi_map.0.insert(coordinates, new_poi);
     }
 
@@ -79,6 +91,7 @@ fn on_add_poi_attach_visuals(
     trigger: On<Add, Poi>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    world_map: Single<Entity, With<WorldMap>>,
     query: Query<&Poi>,
     mut commands: Commands,
 ) {
@@ -92,6 +105,7 @@ fn on_add_poi_attach_visuals(
         Transform::from_rotation(Quat::from_rotation_x(-PI / 2.))
             .with_translation(poi.0.as_world_coordinates(DEFAULT_HEX_SIZE)),
         Pickable::default(),
+        ChildOf(world_map.entity()),
     ));
 }
 
@@ -116,6 +130,7 @@ pub fn plugin(app: &mut App) {
         .add_message::<ReachedPoiMessage>()
         .insert_resource(PoissonDiscSampler::new(30, ChaCha8Rng::default()))
         .add_plugins(poi::plugin)
+        .add_systems(OnEnter(AppStates::InGame), setup)
         .add_systems(
             Update,
             (spawn_map, read_reached_coordinates).run_if(in_state(AppStates::InGame)),

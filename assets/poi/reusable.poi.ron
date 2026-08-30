@@ -1,3 +1,4 @@
 (
+    id: "reusable",
     remove_after_spawns: None,
 )
