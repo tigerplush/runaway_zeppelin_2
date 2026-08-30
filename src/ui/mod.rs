@@ -411,5 +411,5 @@ pub fn plugin(app: &mut App) {
         .add_observer(on_add_needs_styling)
         .add_observer(on_add_needs_placement)
         .add_observer(on_add_needs_icon)
-        .add_observer(on_add_text);
+        .add_observer(on_add_text.run_if(resource_exists::<FontHandles>));
 }

@@ -17,6 +17,12 @@ use crate::{
 
 pub(super) struct WorldState;
 
+#[derive(Clone, Deserialize, Reflect)]
+pub enum PoiType {
+    Mooring,
+    Landing,
+}
+
 #[derive(Asset, Clone, Deserialize, Reflect)]
 pub(super) struct PoiContent {
     /// What will this poi be referred to as? Should be unique.
@@ -26,6 +32,7 @@ pub(super) struct PoiContent {
     /// None means it can be reused infinitely, Some(n) means it can be reused n
     /// times
     remove_after_spawns: Option<usize>,
+    pub poi_type: PoiType,
 }
 
 impl PoiContent {
@@ -134,7 +141,10 @@ impl AvailablePois {
 /// They are pulled from a list of available POIs.
 #[derive(Component, Reflect)]
 #[reflect(Component)]
-pub struct Poi(pub AxialCoordinates);
+pub struct Poi {
+    pub coordinates: AxialCoordinates,
+    pub content: PoiContent,
+}
 
 /// Distance between POIs in m.
 #[derive(Reflect, Resource)]
@@ -194,7 +204,8 @@ fn debug_spawn_distances(
 pub(super) struct PoiMap(pub(super) HashMap<AxialCoordinates, Entity>);
 
 pub(super) fn plugin(app: &mut App) {
-    app.register_type::<PoiFolder>()
+    app.register_type::<Poi>()
+        .register_type::<PoiFolder>()
         .register_type::<AvailablePois>()
         .load_resource::<PoiFolder>()
         .init_resource::<PoiDistance>()

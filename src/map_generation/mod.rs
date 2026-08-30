@@ -76,11 +76,19 @@ fn spawn_map(
             DEFAULT_HEX_SIZE,
         );
 
-        let Some(_poi) = available_pois.get(&WorldState, &mut rng) else {
+        let Some(content) = available_pois.get(&WorldState, &mut rng) else {
             continue;
         };
 
-        let new_poi = commands.spawn((Name::from(_poi.id), Poi(coordinates))).id();
+        let new_poi = commands
+            .spawn((
+                Name::from(content.clone().id),
+                Poi {
+                    coordinates,
+                    content,
+                },
+            ))
+            .id();
         poi_map.0.insert(coordinates, new_poi);
     }
 
@@ -103,7 +111,7 @@ fn on_add_poi_attach_visuals(
         Mesh3d(meshes.add(Extrusion::new(RegularPolygon::default(), 0.1))),
         MeshMaterial3d(materials.add(StandardMaterial::default())),
         Transform::from_rotation(Quat::from_rotation_x(-PI / 2.))
-            .with_translation(poi.0.as_world_coordinates(DEFAULT_HEX_SIZE)),
+            .with_translation(poi.coordinates.as_world_coordinates(DEFAULT_HEX_SIZE)),
         Pickable::default(),
         ChildOf(world_map.entity()),
     ));
@@ -118,14 +126,14 @@ fn read_reached_coordinates(
     mut writer: MessageWriter<ReachedPoiMessage>,
 ) {
     for ev in reader.read() {
-        if let Some((entity, _poi)) = query.iter().find(|&(_entity, poi)| poi.0 == ev.0) {
+        if let Some((entity, _poi)) = query.iter().find(|&(_entity, poi)| poi.coordinates == ev.0) {
             writer.write(ReachedPoiMessage(entity));
         }
     }
 }
 
 pub fn plugin(app: &mut App) {
-    app.register_type::<Poi>()
+    app
         .register_type::<PoissonDiscSampler>()
         .add_message::<ReachedPoiMessage>()
         .insert_resource(PoissonDiscSampler::new(30, ChaCha8Rng::default()))

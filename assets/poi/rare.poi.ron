@@ -1,4 +1,5 @@
 (
     id: "rare",
     remove_after_spawns: Some(2),
+    poi_type: Mooring,
 )

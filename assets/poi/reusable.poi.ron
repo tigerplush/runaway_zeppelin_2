@@ -1,4 +1,5 @@
 (
     id: "reusable",
     remove_after_spawns: None,
+    poi_type: Landing,
 )

@@ -9,6 +9,14 @@ pub enum AppStates {
     InGame,
 }
 
+#[derive(Clone, Debug, Default, Eq, Hash, PartialEq, SubStates)]
+#[source(AppStates = AppStates::InGame)]
+pub enum InGameStates {
+    #[default]
+    World,
+    Expedition,
+}
+
 fn advance_state(res: Res<ResourceHandles>, mut next: ResMut<NextState<AppStates>>) {
     info!("{:.2}%", res.progress() * 100.0);
     if res.is_all_done() {
@@ -17,8 +25,10 @@ fn advance_state(res: Res<ResourceHandles>, mut next: ResMut<NextState<AppStates
 }
 
 pub fn plugin(app: &mut App) {
-    app.init_state::<AppStates>().add_systems(
-        Update,
-        advance_state.run_if(in_state(AppStates::Preloading)),
-    );
+    app.init_state::<AppStates>()
+        .add_sub_state::<InGameStates>()
+        .add_systems(
+            Update,
+            advance_state.run_if(in_state(AppStates::Preloading)),
+        );
 }
