@@ -19,7 +19,7 @@ enum ExpeditionState {
     Info,
     Preparation,
     Actual,
-    Aftermath
+    Aftermath,
 }
 
 #[derive(Resource, Reflect)]
@@ -37,9 +37,8 @@ fn show_expedition_button(mut reader: MessageReader<ReachedPoiMessage>, mut comm
     for ev in reader.read() {
         info!("ev: {}", ev.0);
         commands
-            .spawn(primary_button(
-                "Start Expedition",
-                None,
+            .spawn((
+                primary_button("Start Expedition", None),
                 AttachToUiSlot::Action,
             ))
             .observe(on_start_expedition);

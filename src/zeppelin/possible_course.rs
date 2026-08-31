@@ -48,7 +48,8 @@ fn on_insert_course(
     );
     commands
         .spawn((
-            ui::primary_button("Set Course", Some(content), AttachToUiSlot::Action),
+            ui::primary_button("Set Course", Some(content)),
+            AttachToUiSlot::Action,
             SetCourseButton,
         ))
         .observe(on_set_course);

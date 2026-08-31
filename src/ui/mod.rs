@@ -222,7 +222,6 @@ struct NeedsStyling;
 pub fn primary_button(
     header: impl Into<String>,
     content: Option<String>,
-    slot: AttachToUiSlot,
 ) -> impl Bundle {
     let header = header.into();
     (
@@ -231,7 +230,6 @@ pub fn primary_button(
         NeedsStyling,
         NeedsPlacement,
         Node { ..default() },
-        slot,
         children![(
             Node {
                 padding: UiRect::axes(

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{asset_tracking::LoadResource, expedition::ExpeditionState};
+use crate::{asset_tracking::LoadResource, expedition::ExpeditionState, ui};
 
 #[derive(Asset, Clone, Reflect, Resource)]
 struct ExpeditionInfoAssets {
@@ -30,7 +30,7 @@ fn setup(assets: Res<ExpeditionInfoAssets>, mut commands: Commands) {
             ..default()
         },
         DespawnOnExit(ExpeditionState::Info),
-    ));
+    )).with_child(ui::primary_button("Cancel", None));
 }
 
 pub fn plugin(app: &mut App) {
