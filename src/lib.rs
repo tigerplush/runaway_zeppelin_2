@@ -44,8 +44,8 @@ pub struct AppPlugin;
 impl Plugin for AppPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(EntropyPlugin::<ChaCha8Rng>::default())
+            .add_plugins((asset_tracking::plugin, ui::plugin))
             .add_plugins((
-                asset_tracking::plugin,
                 camera::plugin,
                 expedition::plugin,
                 fog_of_war::plugin,
@@ -55,7 +55,6 @@ impl Plugin for AppPlugin {
                 pathfinding::plugin,
                 pointer::plugin,
                 states::plugin,
-                ui::plugin,
                 utils::plugin,
                 zeppelin::plugin,
             ))

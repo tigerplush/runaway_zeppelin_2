@@ -1,99 +1,30 @@
 use bevy::prelude::*;
 
-use crate::{asset_tracking::LoadResource, states::AppStates};
+use crate::{asset_tracking::LoadResource, states::AppStates, ui::divider::DividerHandles};
 
+mod button;
+mod divider;
+mod font;
 mod tooltip;
 
+use button::*;
+pub use font::*;
 pub use tooltip::*;
 
 #[derive(Component)]
 pub struct UiRoot;
 
-#[derive(Asset, Clone, Reflect, Resource)]
-pub struct FontHandles {
-    #[dependency]
-    header: Handle<Font>,
-    #[dependency]
-    text: Handle<Font>,
-}
-
-impl FromWorld for FontHandles {
-    fn from_world(world: &mut World) -> Self {
-        let asset_server = world.resource::<AssetServer>();
-        Self {
-            header: asset_server.load("ui/MunchausenNF.ttf"),
-            text: asset_server.load("ui/estre.ttf"),
-        }
-    }
-}
-
-#[derive(Asset, Clone, Reflect, Resource)]
-pub struct PopupWindowHandles {
-    #[dependency]
-    popup_window_background: Handle<Image>,
-    slicer: TextureSlicer,
-}
-
-impl PopupWindowHandles {
-    fn image_node(&self) -> ImageNode {
-        ImageNode {
-            image: self.popup_window_background.clone(),
-            image_mode: NodeImageMode::Sliced(self.slicer.clone()),
+pub fn header(text: impl Into<String>) -> impl Bundle {
+    let text = text.into();
+    (
+        Name::from(format!("{}", text)),
+        TextFont {
+            font_size: FontSize::Px(36.0),
             ..default()
-        }
-    }
-}
-
-impl FromWorld for PopupWindowHandles {
-    fn from_world(world: &mut World) -> Self {
-        let asset_server = world.resource::<AssetServer>();
-        let slicer = TextureSlicer {
-            border: BorderRect::all(10.0),
-            center_scale_mode: SliceScaleMode::Stretch,
-            sides_scale_mode: SliceScaleMode::Stretch,
-            max_corner_scale: 1.0,
-        };
-        Self {
-            popup_window_background: asset_server.load("ui/graphics/window_popup.png"),
-            slicer,
-        }
-    }
-}
-
-#[derive(Asset, Clone, Reflect, Resource)]
-pub struct ButtonHandles {
-    #[dependency]
-    button_background: Handle<Image>,
-    slicer: TextureSlicer,
-}
-
-impl ButtonHandles {
-    fn primary(&self) -> ImageNode {
-        ImageNode {
-            image: self.button_background.clone(),
-            image_mode: NodeImageMode::Sliced(self.slicer.clone()),
-            ..default()
-        }
-    }
-}
-
-const BUTTON_SLICE_HORIZONTAL: f32 = 70.0;
-const BUTTON_SLICE_VERTICAL: f32 = 8.0;
-
-impl FromWorld for ButtonHandles {
-    fn from_world(world: &mut World) -> Self {
-        let asset_server = world.resource::<AssetServer>();
-        let slicer = TextureSlicer {
-            border: BorderRect::axes(BUTTON_SLICE_HORIZONTAL, BUTTON_SLICE_VERTICAL),
-            center_scale_mode: SliceScaleMode::Stretch,
-            sides_scale_mode: SliceScaleMode::Stretch,
-            max_corner_scale: 1.0,
-        };
-        Self {
-            button_background: asset_server.load("ui/graphics/btn_middle_2.png"),
-            slicer,
-        }
-    }
+        },
+        FontChoice::Header,
+        Text::new(text),
+    )
 }
 
 #[derive(Asset, Clone, Reflect, Resource)]
@@ -211,18 +142,9 @@ pub enum AttachToUiSlot {
 struct NeedsPlacement;
 
 #[derive(Component)]
-enum FontChoice {
-    Header,
-    Content,
-}
-
-#[derive(Component)]
 struct NeedsStyling;
 
-pub fn primary_button(
-    header: impl Into<String>,
-    content: Option<String>,
-) -> impl Bundle {
+pub fn primary_button(header: impl Into<String>, content: Option<String>) -> impl Bundle {
     let header = header.into();
     (
         Name::from(format!("{} Button", header)),
@@ -309,6 +231,67 @@ pub fn labeled_resource_row(
     )
 }
 
+#[derive(Component)]
+enum Divider {
+    Horizontal,
+    Left,
+    Right,
+}
+
+pub fn horizontal_divider() -> impl Bundle {
+    (Name::from("HorizontalDivider"),
+        Node {
+            width: Val::Percent(80.0),
+            height: Val::Px(4.0),
+            ..default()
+        }, Divider::Horizontal)
+}
+
+pub fn left_divider() -> impl Bundle {
+    (
+        Name::from("LeftDivider"),
+        Node {
+            height: Val::Px(13.0),
+            ..default()
+        },
+        Divider::Left,
+    )
+}
+
+pub fn right_divider() -> impl Bundle {
+    (
+        Name::from("RightDivider"),
+        Node {
+            height: Val::Px(13.0),
+            ..default()
+        },
+        Divider::Right,
+    )
+}
+
+fn on_adds_divider(
+    trigger: On<Add, Divider>,
+    divider_handles: Res<DividerHandles>,
+    query: Query<&Divider>,
+    mut commands: Commands,
+) {
+    let Ok(divider) = query.get(trigger.entity) else {
+        return;
+    };
+
+    match divider {
+        Divider::Horizontal => commands
+            .entity(trigger.entity)
+            .insert(divider_handles.full()),
+        Divider::Left => commands
+            .entity(trigger.entity)
+            .insert(divider_handles.half(false)),
+        Divider::Right => commands
+            .entity(trigger.entity)
+            .insert(divider_handles.half(true)),
+    };
+}
+
 fn on_add_needs_icon(
     trigger: On<Add, NeedsIcon>,
     query: Query<&NeedsIcon>,
@@ -377,37 +360,23 @@ fn on_add_needs_placement(
         .remove::<NeedsPlacement>();
 }
 
-fn on_add_text(
-    trigger: On<Add, Text>,
-    font_handles: Res<FontHandles>,
-    query: Query<&FontChoice>,
-    mut commands: Commands,
-) {
-    if let Ok(font_choice) = query.get(trigger.entity) {
-        let text_font = match font_choice {
-            FontChoice::Header => TextFont {
-                font: FontSource::Handle(font_handles.header.clone()),
-                ..default()
-            },
-            FontChoice::Content => TextFont {
-                font: FontSource::Handle(font_handles.text.clone()),
-                ..default()
-            },
-        };
-        commands.entity(trigger.entity).insert(text_font);
-    }
-}
-
 pub fn plugin(app: &mut App) {
     app.add_plugins(tooltip::plugin)
         .load_resource::<FontHandles>()
         .load_resource::<ButtonHandles>()
         .load_resource::<StatusBarHandles>()
         .load_resource::<ResourceIconHandles>()
+        .load_resource::<DividerHandles>()
         .add_systems(OnExit(AppStates::Preloading), setup)
-        .load_resource::<PopupWindowHandles>()
         .add_observer(on_add_needs_styling)
         .add_observer(on_add_needs_placement)
         .add_observer(on_add_needs_icon)
-        .add_observer(on_add_text.run_if(resource_exists::<FontHandles>));
+        .add_observer(on_adds_divider)
+        .add_observer(font::on_add_text.run_if(resource_exists::<FontHandles>));
+
+    #[cfg(debug_assertions)]
+    app.insert_resource(GlobalUiDebugOptions {
+        enabled: true,
+        ..default()
+    });
 }

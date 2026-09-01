@@ -1,6 +1,39 @@
 use bevy::prelude::*;
 
-use crate::ui::PopupWindowHandles;
+use crate::asset_tracking::LoadResource;
+
+#[derive(Asset, Clone, Reflect, Resource)]
+pub struct PopupWindowHandles {
+    #[dependency]
+    popup_window_background: Handle<Image>,
+    slicer: TextureSlicer,
+}
+
+impl PopupWindowHandles {
+    fn image_node(&self) -> ImageNode {
+        ImageNode {
+            image: self.popup_window_background.clone(),
+            image_mode: NodeImageMode::Sliced(self.slicer.clone()),
+            ..default()
+        }
+    }
+}
+
+impl FromWorld for PopupWindowHandles {
+    fn from_world(world: &mut World) -> Self {
+        let asset_server = world.resource::<AssetServer>();
+        let slicer = TextureSlicer {
+            border: BorderRect::all(10.0),
+            center_scale_mode: SliceScaleMode::Stretch,
+            sides_scale_mode: SliceScaleMode::Stretch,
+            max_corner_scale: 1.0,
+        };
+        Self {
+            popup_window_background: asset_server.load("ui/graphics/window_popup.png"),
+            slicer,
+        }
+    }
+}
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
@@ -85,6 +118,7 @@ pub fn on_leave_tooltip(
 pub(super) fn plugin(app: &mut App) {
     app.register_type::<Tooltip>()
         .register_type::<TooltipContent>()
+        .load_resource::<PopupWindowHandles>()
         .add_observer(on_add_tooltip)
         .add_observer(on_enter_tooltip)
         .add_observer(on_leave_tooltip);

@@ -4,11 +4,6 @@ use std::collections::VecDeque;
 
 use bevy::prelude::*;
 
-pub(super) fn plugin(app: &mut App) {
-    app.init_resource::<ResourceHandles>();
-    app.add_systems(PreUpdate, load_resource_assets);
-}
-
 pub trait LoadResource {
     /// This will load the [`Resource`] as an [`Asset`]. When all of its asset dependencies
     /// have been loaded, it will be inserted as a resource. This ensures that the resource only
@@ -39,10 +34,12 @@ impl LoadResource for App {
 /// A function that inserts a loaded resource.
 type InsertLoadedResource = fn(&mut World, &UntypedHandle);
 
-#[derive(Resource, Default)]
+#[derive(Default, Reflect, Resource)]
+#[reflect(Resource)]
 pub struct ResourceHandles {
     // Use a queue for waiting assets so they can be cycled through and moved to
     // `finished` one at a time.
+    #[reflect(ignore)]
     waiting: VecDeque<(UntypedHandle, InsertLoadedResource)>,
     finished: Vec<UntypedHandle>,
 }
@@ -74,4 +71,10 @@ fn load_resource_assets(world: &mut World) {
             }
         });
     });
+}
+
+pub(super) fn plugin(app: &mut App) {
+    app.register_type::<ResourceHandles>()
+        .init_resource::<ResourceHandles>()
+        .add_systems(PreUpdate, load_resource_assets);
 }
