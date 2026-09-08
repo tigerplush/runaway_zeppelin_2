@@ -149,13 +149,42 @@ fn apply_speed(time: &mut Time<Virtual>, in_game_time: &InGameTime) {
     };
 }
 
+#[derive(Message)]
+pub enum TimeControlMessage {
+    Disable,
+    Enable,
+}
+
+fn on_time_control_message(
+    mut reader: MessageReader<TimeControlMessage>,
+    single: Single<Entity, With<ContextActivity<TimeControl>>>,
+    mut commands: Commands,
+) {
+    for ev in reader.read() {
+        match ev {
+            TimeControlMessage::Disable => {
+                commands
+                    .entity(single.entity())
+                    .insert(ContextActivity::<TimeControl>::INACTIVE);
+            }
+            TimeControlMessage::Enable => {
+                commands
+                    .entity(single.entity())
+                    .insert(ContextActivity::<TimeControl>::ACTIVE);
+            }
+        }
+    }
+}
+
 pub fn plugin(app: &mut App) {
     app.register_type::<InGameTime>()
         .init_resource::<InGameTime>()
+        .add_message::<TimeControlMessage>()
         .add_systems(OnEnter(AppStates::InGame), setup)
         .add_systems(
             Update,
-            (tick_in_game_time, update_label).run_if(resource_exists::<InGameTime>),
+            (on_time_control_message, tick_in_game_time, update_label)
+                .run_if(resource_exists::<InGameTime>),
         )
         .add_observer(on_set_speed.run_if(resource_exists::<InGameTime>));
 

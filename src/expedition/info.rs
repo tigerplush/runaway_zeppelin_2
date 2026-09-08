@@ -1,26 +1,10 @@
 use bevy::prelude::*;
 
 use crate::{
-    asset_tracking::LoadResource,
-    expedition::ExpeditionState,
+    expedition::{ExpeditionAssets, ExpeditionState},
     states::InGameStates,
     ui::{self, FontChoice},
 };
-
-#[derive(Asset, Clone, Reflect, Resource)]
-struct ExpeditionInfoAssets {
-    #[dependency]
-    background: Handle<Image>,
-}
-
-impl FromWorld for ExpeditionInfoAssets {
-    fn from_world(world: &mut World) -> Self {
-        let asset_server = world.resource::<AssetServer>();
-        Self {
-            background: asset_server.load("ui/graphics/screen_bg_2.png"),
-        }
-    }
-}
 
 #[derive(Component)]
 struct Start;
@@ -28,7 +12,7 @@ struct Start;
 #[derive(Component)]
 struct Cancel;
 
-fn setup(assets: Res<ExpeditionInfoAssets>, mut commands: Commands) {
+fn setup(assets: Res<ExpeditionAssets>, mut commands: Commands) {
     commands.spawn((
         Name::from("ExpeditionInfo"),
         Node {
@@ -124,7 +108,7 @@ fn setup(assets: Res<ExpeditionInfoAssets>, mut commands: Commands) {
                     children![
                         // ghost node so the buttons are aligned properly
                         (ui::primary_button("Cancel", None), Visibility::Hidden),
-                        (ui::primary_button("Start Expedition", None), Start),
+                        (ui::primary_button("Start Preparations", None), Start),
                         (ui::primary_button("Cancel", None), Cancel),
                     ]
                 )]
@@ -133,7 +117,7 @@ fn setup(assets: Res<ExpeditionInfoAssets>, mut commands: Commands) {
     ));
 }
 
-fn on_start_expedition(
+fn on_start_preparation(
     trigger: On<Pointer<Release>>,
     start: Query<&Start>,
     mut next_state: ResMut<NextState<ExpeditionState>>,
@@ -143,7 +127,7 @@ fn on_start_expedition(
     }
 }
 
-fn on_cancel_expedition(
+fn on_cancel(
     trigger: On<Pointer<Release>>,
     cancel: Query<&Cancel>,
     mut next_state: ResMut<NextState<InGameStates>>,
@@ -154,8 +138,7 @@ fn on_cancel_expedition(
 }
 
 pub fn plugin(app: &mut App) {
-    app.load_resource::<ExpeditionInfoAssets>()
-        .add_systems(OnEnter(ExpeditionState::Info), setup)
-        .add_observer(on_start_expedition)
-        .add_observer(on_cancel_expedition);
+    app.add_systems(OnEnter(ExpeditionState::Info), setup)
+        .add_observer(on_start_preparation)
+        .add_observer(on_cancel);
 }
