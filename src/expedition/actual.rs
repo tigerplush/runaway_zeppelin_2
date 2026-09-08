@@ -3,7 +3,6 @@ use bevy::prelude::*;
 use crate::expedition::ExpeditionState;
 
 /// On entering the actual expedition state, we should
-/// - disable time controls
 /// - set time to SpeedX1
 /// - show an animation either for landing or for mooring
 /// - on landing:

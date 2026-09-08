@@ -3,8 +3,7 @@ use std::time::Duration;
 use bevy::prelude::*;
 
 use crate::{
-    ui::{self, AttachToUiSlot},
-    utils::hex::AxialCoordinates,
+    in_game_time::InGameTime, ui::{self, AttachToUiSlot}, utils::hex::AxialCoordinates,
 };
 
 /// Represents a possible course. There will only ever be one, so this is a
@@ -21,10 +20,16 @@ pub(super) struct PossibleCourse {
 
 fn on_set_course(
     _trigger: On<Pointer<Release>>,
+    mut in_game_time: ResMut<InGameTime>,
     possible_course: Res<PossibleCourse>,
     zeppelin: Single<Entity, With<super::ZeppelinWrapper>>,
     mut commands: Commands,
+    mut first_course_already_set: Local<bool>,
 ) {
+    if !*first_course_already_set {
+        in_game_time.unpause();
+        *first_course_already_set = true;
+    }
     commands
         .entity(zeppelin.entity())
         .insert(possible_course.path);

@@ -71,11 +71,17 @@ impl InGameTime {
     }
 
     pub fn pause(&mut self) {
+        if GameSpeed::Pause == self.current_speed {
+            return;
+        }
         self.previous_speed = self.current_speed;
         self.current_speed = GameSpeed::Pause
     }
 
     pub fn unpause(&mut self) {
+        if GameSpeed::Pause != self.current_speed {
+            return;
+        }
         self.current_speed = self.previous_speed
     }
 
