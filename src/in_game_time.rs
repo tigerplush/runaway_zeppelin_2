@@ -13,6 +13,27 @@ const FROM_STRING_FMT: &str = "%Y-%m-%d %H:%M:%S";
 const TO_STRING_FMT: &str = "%A, %_H:%M %_d %B %Y";
 const DEFAULT_TIME_SPEED_FACTOR: f32 = 48.0;
 
+const ACCELERATED_TIME_DILATION: f32 = 5.0;
+
+#[derive(Clone, Copy, PartialEq, Reflect)]
+enum GameSpeed {
+    Pause,
+    Speedx1,
+    Speedx2,
+    Speedx4,
+}
+
+impl GameSpeed {
+    fn as_f32(&self) -> f32 {
+        match self {
+            GameSpeed::Pause => 0f32,
+            GameSpeed::Speedx1 => 1f32,
+            GameSpeed::Speedx2 => 2f32,
+            GameSpeed::Speedx4 => 4f32,
+        }
+    }
+}
+
 /// Represents the in-game time of a singular run.
 #[derive(Reflect, Resource)]
 #[reflect(Resource)]
@@ -21,8 +42,6 @@ pub struct InGameTime {
     current_time: NaiveDateTime,
     #[reflect(ignore)]
     starting_time: NaiveDateTime,
-    #[cfg(debug_assertions)]
-    debug_string: String,
     current_speed: GameSpeed,
     previous_speed: GameSpeed,
 }
@@ -34,8 +53,6 @@ impl InGameTime {
         Self {
             current_time: date_time,
             starting_time: date_time,
-            #[cfg(debug_assertions)]
-            debug_string: String::new(),
             current_speed: GameSpeed::Pause,
             previous_speed: GameSpeed::Speedx1,
         }
@@ -47,6 +64,27 @@ impl InGameTime {
     pub fn days(&self) -> i64 {
         let diff = self.current_time - self.starting_time;
         diff.num_days()
+    }
+
+    fn get_current_time_speed(&self) -> f32 {
+        self.current_speed.as_f32() * DEFAULT_TIME_SPEED_FACTOR
+    }
+
+    pub fn pause(&mut self) {
+        self.previous_speed = self.current_speed;
+        self.current_speed = GameSpeed::Pause
+    }
+
+    pub fn unpause(&mut self) {
+        self.current_speed = self.previous_speed
+    }
+
+    fn toggle_pause(&mut self) {
+        if GameSpeed::Pause == self.current_speed {
+            self.unpause();
+        } else {
+            self.pause();
+        }
     }
 }
 
@@ -77,15 +115,10 @@ fn tick_in_game_time(time: Res<Time<Virtual>>, mut in_game_time: ResMut<InGameTi
     in_game_time.current_time += time.delta();
 }
 
-#[cfg(debug_assertions)]
-fn debug_in_game_time(mut in_game_time: ResMut<InGameTime>) {
-    in_game_time.debug_string = format!("{}", *in_game_time);
-}
-
 #[derive(Component)]
 struct InGameTimeLabel;
 
-fn setup(in_game_time: Res<InGameTime>, mut time: ResMut<Time<Virtual>>, mut commands: Commands) {
+fn setup(in_game_time: Res<InGameTime>, mut commands: Commands) {
     commands.spawn((Name::from("Time Controls"), time_control()));
     commands.spawn((
         ui::label(
@@ -94,7 +127,6 @@ fn setup(in_game_time: Res<InGameTime>, mut time: ResMut<Time<Virtual>>, mut com
         ),
         InGameTimeLabel,
     ));
-    apply_speed(&mut time, &in_game_time);
 }
 
 fn update_label(
@@ -106,7 +138,6 @@ fn update_label(
 
 fn on_set_speed(
     trigger: On<Start<SetSpeed>>,
-    mut time: ResMut<Time<Virtual>>,
     mut in_game_time: ResMut<InGameTime>,
     actions: Query<&GameSpeedIndex>,
 ) {
@@ -114,37 +145,19 @@ fn on_set_speed(
         return;
     };
     match game_speed.0 {
-        GameSpeed::Pause if GameSpeed::Pause == in_game_time.current_speed => {
-            // if the game is paused, we want to go to the previous speed
-            in_game_time.current_speed = in_game_time.previous_speed
-        }
-        GameSpeed::Pause => {
-            // if the game is not paused, we remember the previous speed and pause it
-            in_game_time.previous_speed = in_game_time.current_speed;
-            in_game_time.current_speed = GameSpeed::Pause
-        }
-        GameSpeed::Speedx1 => in_game_time.current_speed = GameSpeed::Speedx1,
-        GameSpeed::Speedx2 => in_game_time.current_speed = GameSpeed::Speedx2,
-        GameSpeed::Speedx4 => in_game_time.current_speed = GameSpeed::Speedx4,
+        SetSpeed::TogglePause => in_game_time.toggle_pause(),
+        SetSpeed::Speedx1 => in_game_time.current_speed = GameSpeed::Speedx1,
+        SetSpeed::Speedx2 => in_game_time.current_speed = GameSpeed::Speedx2,
+        SetSpeed::Speedx4 => in_game_time.current_speed = GameSpeed::Speedx4,
     };
-
-    apply_speed(&mut time, &in_game_time);
 }
 
-fn apply_speed(time: &mut Time<Virtual>, in_game_time: &InGameTime) {
+fn apply_speed(mut time: ResMut<Time<Virtual>>, in_game_time: Res<InGameTime>) {
     match in_game_time.current_speed {
         GameSpeed::Pause => time.pause(),
-        GameSpeed::Speedx1 => {
+        _ => {
             time.unpause();
-            time.set_relative_speed(1.0 * DEFAULT_TIME_SPEED_FACTOR)
-        }
-        GameSpeed::Speedx2 => {
-            time.unpause();
-            time.set_relative_speed(2.0 * DEFAULT_TIME_SPEED_FACTOR)
-        }
-        GameSpeed::Speedx4 => {
-            time.unpause();
-            time.set_relative_speed(4.0 * DEFAULT_TIME_SPEED_FACTOR)
+            time.set_relative_speed(in_game_time.get_current_time_speed())
         }
     };
 }
@@ -176,6 +189,22 @@ fn on_time_control_message(
     }
 }
 
+fn on_start_accelerate_time(
+    _trigger: On<Start<AccelerateTimeDilation>>,
+    in_game_time: Res<InGameTime>,
+    mut time: ResMut<Time<Virtual>>,
+) {
+    time.set_relative_speed(in_game_time.get_current_time_speed() * ACCELERATED_TIME_DILATION);
+}
+
+fn on_complete_accelerate_time(
+    _trigger: On<Complete<AccelerateTimeDilation>>,
+    in_game_time: Res<InGameTime>,
+    mut time: ResMut<Time<Virtual>>,
+) {
+    time.set_relative_speed(in_game_time.get_current_time_speed());
+}
+
 pub fn plugin(app: &mut App) {
     app.register_type::<InGameTime>()
         .init_resource::<InGameTime>()
@@ -183,14 +212,17 @@ pub fn plugin(app: &mut App) {
         .add_systems(OnEnter(AppStates::InGame), setup)
         .add_systems(
             Update,
-            (on_time_control_message, tick_in_game_time, update_label)
+            (
+                on_time_control_message,
+                tick_in_game_time,
+                update_label,
+                apply_speed.run_if(resource_changed::<InGameTime>),
+            )
                 .run_if(resource_exists::<InGameTime>),
         )
         .add_observer(on_set_speed.run_if(resource_exists::<InGameTime>));
 
     #[cfg(debug_assertions)]
-    app.add_systems(
-        Update,
-        debug_in_game_time.run_if(resource_exists::<InGameTime>),
-    );
+    app.add_observer(on_start_accelerate_time)
+        .add_observer(on_complete_accelerate_time);
 }

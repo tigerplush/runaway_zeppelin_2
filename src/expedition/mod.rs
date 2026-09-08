@@ -66,11 +66,13 @@ fn show_expedition_button(mut reader: MessageReader<ReachedPoiMessage>, mut comm
     }
 }
 
-fn disable_time_controls(mut commands: Commands) {
+fn disable_time_controls(mut in_game_time: ResMut<InGameTime>, mut commands: Commands) {
+    in_game_time.pause();
     commands.write_message(TimeControlMessage::Disable);
 }
 
-fn enable_time_controls(mut commands: Commands) {
+fn enable_time_controls(mut in_game_time: ResMut<InGameTime>, mut commands: Commands) {
+    in_game_time.unpause();
     commands.write_message(TimeControlMessage::Enable);
 }
 

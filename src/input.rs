@@ -63,27 +63,29 @@ pub struct TimeControl;
 
 #[derive(InputAction)]
 #[action_output(bool)]
-pub struct SetSpeed;
-
-#[derive(Clone, Copy, PartialEq, Reflect)]
-pub enum GameSpeed {
-    Pause,
+pub enum SetSpeed {
+    TogglePause,
     Speedx1,
     Speedx2,
     Speedx4,
 }
 
+#[derive(InputAction)]
+#[action_output(bool)]
+pub struct AccelerateTimeDilation;
+
 #[derive(Component, Deref)]
-pub struct GameSpeedIndex(pub GameSpeed);
+pub struct GameSpeedIndex(pub SetSpeed);
 
 pub fn time_control() -> impl Bundle {
     (
         TimeControl,
         actions!(TimeControl[
-            (Action::<SetSpeed>::new(), GameSpeedIndex(GameSpeed::Pause), bindings![KeyCode::Space]),
-            (Action::<SetSpeed>::new(), GameSpeedIndex(GameSpeed::Speedx1), bindings![KeyCode::Digit1]),
-            (Action::<SetSpeed>::new(), GameSpeedIndex(GameSpeed::Speedx2), bindings![KeyCode::Digit2]),
-            (Action::<SetSpeed>::new(), GameSpeedIndex(GameSpeed::Speedx4), bindings![KeyCode::Digit3]),
+            (Action::<SetSpeed>::new(), GameSpeedIndex(SetSpeed::TogglePause), bindings![KeyCode::Space]),
+            (Action::<SetSpeed>::new(), GameSpeedIndex(SetSpeed::Speedx1), bindings![KeyCode::Digit1]),
+            (Action::<SetSpeed>::new(), GameSpeedIndex(SetSpeed::Speedx2), bindings![KeyCode::Digit2]),
+            (Action::<SetSpeed>::new(), GameSpeedIndex(SetSpeed::Speedx4), bindings![KeyCode::Digit3]),
+            (Action::<AccelerateTimeDilation>::new(), bindings![KeyCode::ShiftLeft]),
         ]),
     )
 }
