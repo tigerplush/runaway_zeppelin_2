@@ -28,7 +28,7 @@ const BIND_GROUP_LAYOUT_LABEL: &str = "fog_of_war_bind_group_layout";
 const BIND_GROUP_LABEL: &str = "fog_of_war_bind_group";
 const RENDER_PIPELINE_LABEL: &str = "fog_of_war_pipeline";
 const RENDER_PASS_LABEL: &str = "fog_of_war_pass";
-const FOG_OF_WAR_SHADER_PATH: &str = "shader/fog_of_war.wgsl";
+const FOG_OF_WAR_SHADER_PATH: &str = "shader/fog_of_war.wesl";
 
 /// Ensures any `Camera3d` has what the overlay needs to read a depth buffer,
 /// regardless of whether some other plugin (e.g. fog of war) already did.

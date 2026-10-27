@@ -1,5 +1,5 @@
-#import bevy_core_pipeline::fullscreen_vertex_shader::FullscreenVertexOutput
-#import bevy_render::view::View
+import bevy_core_pipeline::fullscreen_vertex_shader::FullscreenVertexOutput;
+import bevy_render::view::View;
 
 @group(0) @binding(0) var depth_texture: texture_depth_2d;
 @group(0) @binding(1) var fog_explored_texture: texture_2d<f32>;

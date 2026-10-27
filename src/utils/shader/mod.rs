@@ -42,7 +42,7 @@ const BIND_GROUP_LAYOUT_LABEL: &str = "depth_overlay_bind_group_layout";
 const BIND_GROUP_LABEL: &str = "depth_overlay_bind_group";
 const RENDER_PIPELINE_LABEL: &str = "depth_overlay_pipeline";
 const RENDER_PASS_LABEL: &str = "depth_overlay_pass";
-const DEPTH_OVERLAY_SHADER_PATH: &str = "shader/depth_overlay.wgsl";
+const DEPTH_OVERLAY_SHADER_PATH: &str = "shader/depth_overlay.wesl";
 
 /// Toggle this from the world inspector to show/hide the depth overlay.
 #[derive(Clone, Default, Reflect, Resource)]
