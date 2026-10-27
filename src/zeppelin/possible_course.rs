@@ -19,7 +19,7 @@ pub(super) struct PossibleCourse {
 }
 
 fn on_set_course(
-    _trigger: On<Pointer<Release>>,
+    _trigger: On<PointerRelease>,
     mut in_game_time: ResMut<InGameTime>,
     possible_course: Res<PossibleCourse>,
     zeppelin: Single<Entity, With<super::ZeppelinWrapper>>,
@@ -40,7 +40,7 @@ fn on_set_course(
 struct SetCourseButton;
 
 fn on_insert_course(
-    _trigger: On<Insert, PossibleCourse>,
+    _trigger: On<Insert<PossibleCourse>>,
     possible_course: Res<PossibleCourse>,
     previous_buttons: Query<Entity, With<SetCourseButton>>,
     mut commands: Commands,
@@ -65,7 +65,7 @@ fn on_insert_course(
 }
 
 fn on_remove_course(
-    _trigger: On<Remove, PossibleCourse>,
+    _trigger: On<Remove<PossibleCourse>>,
     previous_button: Single<Entity, With<SetCourseButton>>,
     mut commands: Commands,
 ) {

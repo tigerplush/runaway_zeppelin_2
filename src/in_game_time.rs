@@ -16,7 +16,7 @@ const DEFAULT_TIME_SPEED_FACTOR: f32 = 48.0;
 const ACCELERATED_TIME_DILATION: f32 = 5.0;
 
 #[derive(Clone, Copy, PartialEq, Reflect)]
-enum GameSpeed {
+pub enum GameSpeed {
     Pause,
     Speedx1,
     Speedx2,
@@ -91,6 +91,10 @@ impl InGameTime {
         } else {
             self.pause();
         }
+    }
+
+    pub fn set_speed(&mut self, current_speed: GameSpeed) {
+        self.current_speed = current_speed;
     }
 }
 

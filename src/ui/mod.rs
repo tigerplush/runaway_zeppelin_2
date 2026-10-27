@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, ui_widgets::Button};
 
 use crate::{asset_tracking::LoadResource, states::AppStates, ui::divider::DividerHandles};
 
@@ -270,7 +270,7 @@ pub fn right_divider() -> impl Bundle {
 }
 
 fn on_adds_divider(
-    trigger: On<Add, Divider>,
+    trigger: On<Add<Divider>>,
     divider_handles: Res<DividerHandles>,
     query: Query<&Divider>,
     mut commands: Commands,
@@ -293,7 +293,7 @@ fn on_adds_divider(
 }
 
 fn on_add_needs_icon(
-    trigger: On<Add, NeedsIcon>,
+    trigger: On<Add<NeedsIcon>>,
     query: Query<&NeedsIcon>,
     icons: Res<ResourceIconHandles>,
     mut commands: Commands,
@@ -320,7 +320,7 @@ fn on_add_needs_icon(
 }
 
 fn on_add_needs_styling(
-    trigger: On<Add, NeedsStyling>,
+    trigger: On<Add<NeedsStyling>>,
     button_handles: Res<ButtonHandles>,
     mut commands: Commands,
 ) {
@@ -331,7 +331,7 @@ fn on_add_needs_styling(
 }
 
 fn on_add_needs_placement(
-    trigger: On<Add, NeedsPlacement>,
+    trigger: On<Add<NeedsPlacement>>,
     query: Query<&AttachToUiSlot>,
     ui_slots: Query<(Entity, &UiSlot)>,
     mut commands: Commands,

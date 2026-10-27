@@ -118,7 +118,7 @@ fn setup(assets: Res<ExpeditionAssets>, mut commands: Commands) {
 }
 
 fn on_start_preparation(
-    trigger: On<Pointer<Release>>,
+    trigger: On<PointerRelease>,
     start: Query<&Start>,
     mut next_state: ResMut<NextState<ExpeditionState>>,
 ) {
@@ -128,7 +128,7 @@ fn on_start_preparation(
 }
 
 fn on_cancel(
-    trigger: On<Pointer<Release>>,
+    trigger: On<PointerRelease>,
     cancel: Query<&Cancel>,
     mut next_state: ResMut<NextState<InGameStates>>,
 ) {

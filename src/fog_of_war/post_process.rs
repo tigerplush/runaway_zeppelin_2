@@ -32,7 +32,7 @@ const FOG_OF_WAR_SHADER_PATH: &str = "shader/fog_of_war.wgsl";
 
 /// Ensures any `Camera3d` has what the overlay needs to read a depth buffer,
 /// regardless of whether some other plugin (e.g. fog of war) already did.
-fn ensure_camera_prepass(trigger: On<Add, Camera3d>, mut commands: Commands) {
+fn ensure_camera_prepass(trigger: On<Add<Camera3d>>, mut commands: Commands) {
     commands
         .entity(trigger.entity)
         .insert((Msaa::Off, DepthPrepass));
@@ -142,7 +142,7 @@ fn fog_of_war_system(
     };
 
     let (view_target, prepass_textures, view_uniform_offset) = view.into_inner();
-    let Some(depth_view) = prepass_textures.depth_view() else {
+    let Some(depth_view) = prepass_textures.depth_only_view() else {
         return;
     };
     let Some(view_uniform) = view_uniforms.uniforms.binding() else {

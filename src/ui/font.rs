@@ -25,7 +25,7 @@ impl FromWorld for FontHandles {
 }
 
 pub(super) fn on_add_text(
-    trigger: On<Add, Text>,
+    trigger: On<Add<Text>>,
     font_handles: Res<FontHandles>,
     query: Query<&FontChoice, Without<TextFont>>,
     mut already_existing: Query<(&FontChoice, &mut TextFont), With<TextFont>>,

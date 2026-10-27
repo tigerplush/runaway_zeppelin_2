@@ -114,7 +114,7 @@ fn setup(mut commands: Commands) {
 }
 
 fn sort_bindings(
-    trigger: On<Add, Binding>,
+    trigger: On<Add<Binding>>,
     bindings: Single<Entity, With<BindingsMap>>,
     mut commands: Commands,
 ) {

@@ -1,11 +1,8 @@
 use std::{collections::HashSet, ops::Sub};
 
 use bevy::{
-    asset::RenderAssetUsages,
-    prelude::*,
-    render::{
-        extract_resource::{ExtractResource, ExtractResourcePlugin},
-        render_resource::{Extent3d, ShaderType, TextureDimension, TextureFormat},
+    asset::RenderAssetUsages, prelude::*, render::{
+        RenderApp, extract_resource::{ExtractResource, ExtractResourcePlugin}, render_resource::{Extent3d, ShaderType, TextureDimension, TextureFormat},
     },
 };
 
@@ -91,6 +88,7 @@ fn reveal_around_zeppelin(
 
 #[derive(Clone, ExtractResource, Reflect, Resource)]
 #[reflect(Resource)]
+#[extract_app(RenderApp)]
 pub struct FogExploredTexture {
     pub image: Handle<Image>,
     center: FogCell,
@@ -186,6 +184,7 @@ fn sync_explored_texture(
 
 #[derive(Clone, Default, ExtractResource, Reflect, Resource, ShaderType)]
 #[reflect(Resource)]
+#[extract_app(RenderApp)]
 pub struct FogParams {
     zeppelin_world: Vec2,
     window_origin: Vec2,

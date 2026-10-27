@@ -31,6 +31,7 @@ struct ZeppelinMovementSettings {
     deceleration: Acceleration,
     drag: Acceleration,
     maximum_turn_radius: f32,
+    descent_rate: Velocity,
 }
 
 impl ZeppelinMovementSettings {
@@ -40,6 +41,7 @@ impl ZeppelinMovementSettings {
         deceleration: Acceleration,
         drag: Acceleration,
         maximum_turn_radius: f32,
+        descent_rate: Velocity,
     ) -> Self {
         Self {
             current_speed: Velocity(0.0),
@@ -48,6 +50,7 @@ impl ZeppelinMovementSettings {
             deceleration,
             drag,
             maximum_turn_radius,
+            descent_rate,
         }
     }
 
@@ -68,6 +71,23 @@ impl ZeppelinMovementSettings {
     fn decelerate_with_drag(&mut self, delta: &Duration) {
         self.current_speed -= self.drag * delta;
         self.current_speed = self.current_speed.clamp(Velocity(0.0), self.cruising_speed);
+    }
+
+    fn lz127(scale: &WorldScale) -> Self {
+        Self::new(
+            // real LZ127 cruise speed, 33 m/s
+            Velocity(scale.units(33.0)),
+            // real LZ127 acceleration, 0.15 m/s²
+            Acceleration(scale.units(0.15)),
+            // real LZ127 deceleration, 0.35 m/s²
+            Acceleration(scale.units(0.35)),
+            // default zeppelin drag
+            Acceleration(scale.units(0.05)),
+            // real LZ127 turning radius, 100m
+            scale.units(100.0),
+            // descent rate of 0.5m/s
+            Velocity(scale.units(0.5)),
+        )
     }
 }
 
@@ -151,15 +171,7 @@ fn setup(
             Visibility::Inherited,
             Transform::default(),
             VisibilityRadius(50_000f32),
-            ZeppelinMovementSettings::new(
-                // real LZ127 cruise speed, 33 m/s
-                Velocity(scale.units(33.0)),
-                // real LZ127 acceleration, 0.15 m/s²
-                Acceleration(scale.units(0.15)),
-                Acceleration(scale.units(0.35)), // real LZ127 deceleration, 0.35 m/s²
-                Acceleration(scale.units(0.05)),
-                scale.units(100.0), // real LZ127 turning radius, 100m
-            ),
+            ZeppelinMovementSettings::lz127(&scale),
             Engine {
                 current_temperature: Temperature::from_celsius(20.0),
                 operating_temperature: Temperature::from_celsius(70.0),

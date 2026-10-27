@@ -46,7 +46,7 @@ enum ExpeditionState {
 struct ExpeditionInQuestion(Entity);
 
 fn on_start_expedition(
-    _trigger: On<Pointer<Release>>,
+    _trigger: On<PointerRelease>,
     mut next_state: ResMut<NextState<InGameStates>>,
 ) {
     next_state.set(InGameStates::Expedition);

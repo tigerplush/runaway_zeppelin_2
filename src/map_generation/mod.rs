@@ -96,7 +96,7 @@ fn spawn_map(
 }
 
 fn on_add_poi_attach_visuals(
-    trigger: On<Add, Poi>,
+    trigger: On<Add<Poi>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     world_map: Single<Entity, With<WorldMap>>,

@@ -64,7 +64,7 @@ pub fn tooltip(parent: Entity, content: impl Bundle) -> impl Bundle {
 }
 
 pub fn on_add_tooltip(
-    trigger: On<Add, TooltipContent>,
+    trigger: On<Add<TooltipContent>>,
     popup_window: Res<PopupWindowHandles>,
     tooltip_contents: Query<&TooltipContent>,
     mut commands: Commands,
@@ -80,7 +80,7 @@ pub fn on_add_tooltip(
 }
 
 pub fn on_enter_tooltip(
-    trigger: On<Pointer<Enter>>,
+    trigger: On<PointerEnter>,
     tooltips: Query<(&ComputedNode, &Tooltip), Without<TooltipContent>>,
     mut contents: Query<(&mut Visibility, &mut Node), With<TooltipContent>>,
 ) {
@@ -101,7 +101,7 @@ pub fn on_enter_tooltip(
 }
 
 pub fn on_leave_tooltip(
-    trigger: On<Pointer<Leave>>,
+    trigger: On<PointerLeave>,
     tooltips: Query<&Tooltip>,
     mut contents: Query<&mut Visibility, With<TooltipContent>>,
 ) {

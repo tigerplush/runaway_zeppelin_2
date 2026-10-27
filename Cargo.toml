@@ -4,19 +4,19 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = { version = "0.19.1", features = ["mesh_picking", "file_watcher"] }
-bevy_egui = "0.40.0"
-bevy-inspector-egui = "0.37.0"
-bevy_common_assets = { version = "0.17.0", features = ["ron"] }
+bevy = { version = "0.20.0", features = ["mesh_picking", "file_watcher"] }
+bevy_egui = "0.43.1"
+bevy-inspector-egui = "0.38.0"
+bevy_common_assets = { version = "0.18.0", features = ["ron"] }
 chrono = "0.4.45"
-bevy_enhanced_input = "0.26"
+bevy_enhanced_input = "0.27.2"
 serde = "1.0.229"
 yarnspinner = "0.9.0"
-rand = "0.10.2"
-bevy_rand = { version = "0.15.2", features = ["chacha20"] }
+rand = "0.10.3"
+bevy_rand = { version = "0.16.0", features = ["chacha20"] }
 priority-queue = "2.7.0"
-bevy_yarnspinner = "0.9.0"
-bevy_yarnspinner_example_dialogue_view = "0.9.0"
+bevy_yarnspinner = { git = "https://github.com/tcanabrava/YarnSpinner-Rust/", branch = "bevy-0.20" }
+bevy_yarnspinner_example_dialogue_view = { git = "https://github.com/tcanabrava/YarnSpinner-Rust/", branch = "bevy-0.20" }
 
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]
