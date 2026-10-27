@@ -1,6 +1,9 @@
 use bevy::prelude::*;
 
-use crate::{expedition::ExpeditionState, in_game_time::{GameSpeed::Speedx1, InGameTime}};
+use crate::{
+    expedition::ExpeditionState,
+    in_game_time::{GameSpeed::Speedx1, InGameTime},
+};
 
 /// On entering the actual expedition state, we should
 /// - set time to SpeedX1

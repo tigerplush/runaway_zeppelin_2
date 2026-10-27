@@ -1,8 +1,12 @@
 use std::{collections::HashSet, ops::Sub};
 
 use bevy::{
-    asset::RenderAssetUsages, prelude::*, render::{
-        RenderApp, extract_resource::{ExtractResource, ExtractResourcePlugin}, render_resource::{Extent3d, ShaderType, TextureDimension, TextureFormat},
+    asset::RenderAssetUsages,
+    prelude::*,
+    render::{
+        RenderApp,
+        extract_resource::{ExtractResource, ExtractResourcePlugin},
+        render_resource::{Extent3d, ShaderType, TextureDimension, TextureFormat},
     },
 };
 

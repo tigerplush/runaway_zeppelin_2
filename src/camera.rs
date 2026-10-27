@@ -23,11 +23,11 @@ impl Default for CameraMovementIntent {
 }
 
 fn spawn_camera(mut commands: Commands) {
-    commands.spawn((
+    commands.spawn_scene(pan_orbit_controls_bsn()).insert((
         Name::from("Main Camera"),
         Camera3d::default(),
         Transform::from_xyz(0.0, 10.0, -10.0).looking_at(Vec3::ZERO, Vec3::Y),
-        pan_orbit_controls(),
+        // pan_orbit_controls(),
         CameraMovementIntent::default(),
     ));
 }

@@ -3,7 +3,9 @@ use std::time::Duration;
 use bevy::prelude::*;
 
 use crate::{
-    in_game_time::InGameTime, ui::{self, AttachToUiSlot}, utils::hex::AxialCoordinates,
+    in_game_time::InGameTime,
+    ui::{self, AttachToUiSlot},
+    utils::hex::AxialCoordinates,
 };
 
 /// Represents a possible course. There will only ever be one, so this is a

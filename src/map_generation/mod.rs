@@ -133,8 +133,7 @@ fn read_reached_coordinates(
 }
 
 pub fn plugin(app: &mut App) {
-    app
-        .register_type::<PoissonDiscSampler>()
+    app.register_type::<PoissonDiscSampler>()
         .add_message::<ReachedPoiMessage>()
         .insert_resource(PoissonDiscSampler::new(30, ChaCha8Rng::default()))
         .add_plugins(poi::plugin)

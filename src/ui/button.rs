@@ -20,7 +20,6 @@ impl ButtonHandles {
     }
 }
 
-
 impl FromWorld for ButtonHandles {
     fn from_world(world: &mut World) -> Self {
         let asset_server = world.resource::<AssetServer>();

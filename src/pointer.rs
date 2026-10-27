@@ -16,7 +16,9 @@ struct Pointer {
 }
 
 fn setup(mut commands: Commands) {
-    commands.spawn((Pointer::default(), pointer_control(), Transform::default()));
+    commands
+        .spawn_scene(pointer_control_bsn())
+        .insert((Pointer::default(), Transform::default()));
 }
 
 fn update_pointer(

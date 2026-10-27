@@ -239,12 +239,15 @@ enum Divider {
 }
 
 pub fn horizontal_divider() -> impl Bundle {
-    (Name::from("HorizontalDivider"),
+    (
+        Name::from("HorizontalDivider"),
         Node {
             width: Val::Percent(80.0),
             height: Val::Px(4.0),
             ..default()
-        }, Divider::Horizontal)
+        },
+        Divider::Horizontal,
+    )
 }
 
 pub fn left_divider() -> impl Bundle {

@@ -129,7 +129,10 @@ fn tick_in_game_time(time: Res<Time<Virtual>>, mut in_game_time: ResMut<InGameTi
 struct InGameTimeLabel;
 
 fn setup(in_game_time: Res<InGameTime>, mut commands: Commands) {
-    commands.spawn((Name::from("Time Controls"), time_control()));
+    commands
+        .spawn_scene(time_control_bsn())
+        .insert(Name::from("Time Controls"));
+
     commands.spawn((
         ui::label(
             format!("{}", *in_game_time),
@@ -204,6 +207,7 @@ fn on_start_accelerate_time(
     in_game_time: Res<InGameTime>,
     mut time: ResMut<Time<Virtual>>,
 ) {
+    info!("acc");
     time.set_relative_speed(in_game_time.get_current_time_speed() * ACCELERATED_TIME_DILATION);
 }
 
@@ -212,6 +216,7 @@ fn on_complete_accelerate_time(
     in_game_time: Res<InGameTime>,
     mut time: ResMut<Time<Virtual>>,
 ) {
+    info!("deacc");
     time.set_relative_speed(in_game_time.get_current_time_speed());
 }
 

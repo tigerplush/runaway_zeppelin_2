@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_enhanced_input::prelude::*;
 
-#[derive(Component)]
+#[derive(Clone, Component, Default)]
 pub struct PanOrbitCam;
 
 #[derive(InputAction)]
@@ -20,51 +20,53 @@ pub struct Zoom;
 #[action_output(bool)]
 pub struct EnableOrbit;
 
-pub fn pan_orbit_controls() -> impl Bundle {
-    (
-        PanOrbitCam,
-        actions!(PanOrbitCam[
-            (
-                Action::<Pan>::new(),
-                DeadZone::default(),
-                Bindings::spawn((
-                    Cardinal::wasd_keys(),
-                    Axial::left_stick(),
-                )),
-            ),
-            (
-                Action::<Orbit>::new(),
-                DeadZone::default(),
-                Bindings::spawn((
-                    Spawn(Binding::mouse_motion()),
-                    Axial::right_stick()
-                ))
-            ),
-            (
-                Action::<Zoom>::new(),
-                Bindings::spawn((
-                    Spawn((Binding::mouse_wheel(), SwizzleAxis::YXZ, Negate::all())),
-                    Bidirectional::new(GamepadButton::DPadUp, GamepadButton::DPadDown),
-                ))
-            ),
-            (
-                Action::<EnableOrbit>::new(),
-                Bindings::spawn((
-                    Spawn(Binding::from(MouseButton::Middle)),
-                    Axial::right_stick().with(DeadZone::default()),
-                )),
-            )
-        ]),
-    )
+pub fn pan_orbit_controls_bsn() -> impl Scene {
+    bsn! {
+        PanOrbitCam
+        Actions<PanOrbitCam> [
+            Action::<Pan>::new()
+            DeadZone::default()
+            Bindings [
+                {preset::cardinal::wasd_keys()}
+                --
+                {preset::axial::left_stick()}
+            ]
+            --
+            Action::<Orbit>::new()
+            DeadZone::default()
+            Bindings [
+                Binding::mouse_motion()
+                --
+                {preset::axial::right_stick()}
+            ]
+            --
+            Action::<Zoom>::new()
+            Bindings [
+                Binding::mouse_wheel()
+                ~SwizzleAxis::YXZ
+                ~Negate::all()
+                --
+                {preset::bidirectional::new(GamepadButton::DPadUp, GamepadButton::DPadDown)}
+            ]
+            --
+            Action::<EnableOrbit>::new()
+            Bindings [
+                Binding(MouseButton::Middle)
+                --
+                {preset::axial::right_stick()}
+            ]
+        ]
+    }
 }
 
-#[derive(Component)]
+#[derive(Clone, Component, Default)]
 pub struct TimeControl;
 
-#[derive(InputAction)]
+#[derive(Clone, Default, InputAction)]
 #[action_output(bool)]
 pub enum SetSpeed {
     TogglePause,
+    #[default]
     Speedx1,
     Speedx2,
     Speedx4,
@@ -74,36 +76,62 @@ pub enum SetSpeed {
 #[action_output(bool)]
 pub struct AccelerateTimeDilation;
 
-#[derive(Component, Deref)]
+#[derive(Clone, Component, Default, Deref)]
 pub struct GameSpeedIndex(pub SetSpeed);
 
-pub fn time_control() -> impl Bundle {
-    (
-        TimeControl,
-        actions!(TimeControl[
-            (Action::<SetSpeed>::new(), GameSpeedIndex(SetSpeed::TogglePause), bindings![KeyCode::Space]),
-            (Action::<SetSpeed>::new(), GameSpeedIndex(SetSpeed::Speedx1), bindings![KeyCode::Digit1]),
-            (Action::<SetSpeed>::new(), GameSpeedIndex(SetSpeed::Speedx2), bindings![KeyCode::Digit2]),
-            (Action::<SetSpeed>::new(), GameSpeedIndex(SetSpeed::Speedx4), bindings![KeyCode::Digit3]),
-            (Action::<AccelerateTimeDilation>::new(), bindings![KeyCode::ShiftLeft]),
-        ]),
-    )
+pub fn time_control_bsn() -> impl Scene {
+    bsn! {
+        TimeControl
+        Actions<TimeControl> [
+            Action::<SetSpeed>::new()
+            GameSpeedIndex(SetSpeed::TogglePause)
+            Bindings [
+                Binding(KeyCode::Space)
+            ]
+            --
+            Action::<SetSpeed>::new()
+            GameSpeedIndex(SetSpeed::Speedx1)
+            Bindings [
+                Binding(KeyCode::Digit1)
+            ]
+            --
+            Action::<SetSpeed>::new()
+            GameSpeedIndex(SetSpeed::Speedx2)
+            Bindings [
+                Binding(KeyCode::Digit2)
+            ]
+            --
+            Action::<SetSpeed>::new()
+            GameSpeedIndex(SetSpeed::Speedx4)
+            Bindings [
+                Binding(KeyCode::Digit3)
+            ]
+            --
+            Action::<AccelerateTimeDilation>::new()
+            Bindings [
+                Binding(KeyCode::ShiftLeft)
+            ]
+        ]
+    }
 }
 
-#[derive(Component)]
+#[derive(Clone, Component, Default)]
 pub struct PointerControl;
 
 #[derive(InputAction)]
 #[action_output(bool)]
 pub struct SelectTile;
 
-pub fn pointer_control() -> impl Bundle {
-    (
-        PointerControl,
-        actions!(PointerControl[
-            (Action::<SelectTile>::new(),bindings![MouseButton::Left]),
-        ]),
-    )
+pub fn pointer_control_bsn() -> impl Scene {
+    bsn! {
+        PointerControl
+        Actions<PointerControl> [
+            Action::<SelectTile>::new()
+            Bindings [
+                Binding(MouseButton::Left)
+            ]
+        ]
+    }
 }
 
 #[derive(Component)]
